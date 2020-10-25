@@ -7,7 +7,7 @@ The type `curie` ("Compact URI") defines a generic syntax for expressing URIs by
 [![Git Hub](https://img.shields.io/github/last-commit/fogfish/curie.svg)](https://github.com/fogfish/curie)
 [![Coverage Status](https://coveralls.io/repos/github/fogfish/curie/badge.svg?branch=master)](https://coveralls.io/github/fogfish/curie?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/fogfish/curie)](https://goreportcard.com/report/github.com/fogfish/curie)
-[![Maintainability](https://api.codeclimate.com/v1/badges/8a8746f9cbaba81bb44b/maintainability)](https://codeclimate.com/github/fogfish/curie/maintainability)
+[![Maintainability](https://api.codeclimate.com/v1/badges/bdad0e2fd29d488217fd/maintainability)](https://codeclimate.com/github/fogfish/curie/maintainability)
 
 
 ## Inspiration 
