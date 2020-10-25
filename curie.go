@@ -50,7 +50,7 @@ of a thing. The tagged struct belongs to Thing category (implements Thing interf
 
   type MyStruct struct {
     curie.ID
-	}
+  }
 
 */
 type ID struct {
