@@ -92,6 +92,14 @@ func (iri ID) Rank() int {
 
 /*
 
+Safe transforms CURIE to safe string
+*/
+func (iri ID) Safe() string {
+	return iri.IRI.Safe()
+}
+
+/*
+
 Parent decomposes CURIE and return its parent CURIE. It return immediate parent
 compact URI by default. Use optional rank param to extract "grant" parents,
 non immediate value distant at rank.
@@ -232,6 +240,14 @@ String transform CURIE to string
 */
 func (iri IRI) String() string {
 	return join(iri.Seq)
+}
+
+/*
+
+Safe transforms CURIE to safe string
+*/
+func (iri IRI) Safe() string {
+	return "[" + iri.String() + "]"
 }
 
 /*
