@@ -66,7 +66,8 @@ func TestSafeIRI(t *testing.T) {
 		"[a:b/c/d/e]": &r5,
 	} {
 		it.Ok(t).
-			If(curie.New(k)).Should().Equal(*v)
+			If(curie.New(k)).Should().Equal(*v).
+			If(v.Safe()).Should().Equal(k)
 	}
 }
 
