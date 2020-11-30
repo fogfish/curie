@@ -92,6 +92,13 @@ func TestIdentity(t *testing.T) {
 	}
 }
 
+func TestThis(t *testing.T) {
+	iri := curie.NewIRI("a:b/c/d/")
+
+	it.Ok(t).
+		If(iri.This()).Should().Equal(&iri)
+}
+
 func TestPrefix(t *testing.T) {
 	test := map[*curie.ID][]string{
 		&rZ: {"", "", "", "", "", ""},
