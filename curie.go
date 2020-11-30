@@ -236,6 +236,14 @@ func NewIRI(iri string, args ...interface{}) IRI {
 
 /*
 
+This return pointer to itself
+*/
+func (iri IRI) This() *IRI {
+	return &iri
+}
+
+/*
+
 String transform CURIE to string
 */
 func (iri IRI) String() string {
