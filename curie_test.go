@@ -167,6 +167,20 @@ func TestJoin(t *testing.T) {
 		If(r4.Join("e")).Should().Equal(r5)
 }
 
+func TestJoinRanked(t *testing.T) {
+	it.Ok(t).
+		If(rZ.Join("a/b/c/d/e")).Should().Equal(r5).
+		If(r0.Join("b/c/d/e")).Should().Equal(r5).
+		If(r2.Join("c/d/e")).Should().Equal(r5).
+		If(r3.Join("d/e")).Should().Equal(r5).
+		If(r4.Join("e")).Should().Equal(r5).
+		If(rZ.Join("a:b/c/d/e")).Should().Equal(r5).
+		If(r0.Join("b:c/d/e")).Should().Equal(r5).
+		If(r2.Join("c:d/e")).Should().Equal(r5).
+		If(r3.Join("d:e")).Should().Equal(r5).
+		If(r4.Join("e:")).Should().Equal(r5)
+}
+
 func TestJoinImmutable(t *testing.T) {
 	rN := r3.Parent().Join("t")
 
