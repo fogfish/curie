@@ -236,6 +236,14 @@ func NewIRI(iri string, args ...interface{}) IRI {
 
 /*
 
+This return pointer to itself
+*/
+func (iri IRI) This() *IRI {
+	return &iri
+}
+
+/*
+
 String transform CURIE to string
 */
 func (iri IRI) String() string {
@@ -324,7 +332,18 @@ Join composes segments into new descendant CURIE.
   a:b × [c, d, e] ⟼ a:b/c/d/e
 */
 func (iri IRI) Join(segments ...string) IRI {
-	return IRI{Seq: append(append([]string{}, iri.Seq...), segments...)}
+	seq := append([]string{}, iri.Seq...)
+	for _, x := range segments {
+		seq = append(seq,
+			strings.FieldsFunc(x,
+				func(x rune) bool {
+					return x == '/' || x == ':'
+				},
+			)...,
+		)
+	}
+
+	return IRI{Seq: seq}
 }
 
 /*

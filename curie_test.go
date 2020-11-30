@@ -92,6 +92,13 @@ func TestIdentity(t *testing.T) {
 	}
 }
 
+func TestThis(t *testing.T) {
+	iri := curie.NewIRI("a:b/c/d/")
+
+	it.Ok(t).
+		If(iri.This()).Should().Equal(&iri)
+}
+
 func TestPrefix(t *testing.T) {
 	test := map[*curie.ID][]string{
 		&rZ: {"", "", "", "", "", ""},
@@ -165,6 +172,20 @@ func TestJoin(t *testing.T) {
 		If(r2.Join("c")).Should().Equal(r3).
 		If(r3.Join("d")).Should().Equal(r4).
 		If(r4.Join("e")).Should().Equal(r5)
+}
+
+func TestJoinRanked(t *testing.T) {
+	it.Ok(t).
+		If(rZ.Join("a/b/c/d/e")).Should().Equal(r5).
+		If(r0.Join("b/c/d/e")).Should().Equal(r5).
+		If(r2.Join("c/d/e")).Should().Equal(r5).
+		If(r3.Join("d/e")).Should().Equal(r5).
+		If(r4.Join("e")).Should().Equal(r5).
+		If(rZ.Join("a:b/c/d/e")).Should().Equal(r5).
+		If(r0.Join("b:c/d/e")).Should().Equal(r5).
+		If(r2.Join("c:d/e")).Should().Equal(r5).
+		If(r3.Join("d:e")).Should().Equal(r5).
+		If(r4.Join("e:")).Should().Equal(r5)
 }
 
 func TestJoinImmutable(t *testing.T) {
