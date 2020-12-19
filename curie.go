@@ -20,10 +20,6 @@ import (
 	"net/url"
 	"path"
 	"strings"
-
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
 /*
@@ -35,6 +31,25 @@ type Thing interface {
 	// The identifier property represents any kind of identifier for
 	// any kind of Thing
 	Identity() ID
+}
+
+/*
+
+IRI ...
+*/
+type IRI interface {
+	IsEmpty() bool
+	Rank() int
+	Seq() []string
+	String() string
+	Safe() string
+	Parent(rank ...int) IRI
+	Prefix(rank ...int) string
+	Suffix(rank ...int) string
+	Join(segments ...string) IRI
+	Heir(other IRI) IRI
+	Eq(x IRI) bool
+	Lt(x IRI) bool
 }
 
 //------------------------------------------------------------------------------
@@ -54,7 +69,7 @@ of a thing. The tagged struct belongs to Thing category (implements Thing interf
 
 */
 type ID struct {
-	IRI IRI `dynamodbav:"id" json:"id"`
+	IRI `dynamodbav:"id" json:"id"`
 }
 
 /*
@@ -79,7 +94,7 @@ func (iri ID) Identity() ID {
 IsEmpty returns true if compact URI is not defined (empty)
 */
 func (iri ID) IsEmpty() bool {
-	return len(iri.IRI.Seq) == 0
+	return iri.IRI.IsEmpty()
 }
 
 /*
@@ -87,7 +102,7 @@ func (iri ID) IsEmpty() bool {
 Rank value of CURIE
 */
 func (iri ID) Rank() int {
-	return len(iri.IRI.Seq)
+	return iri.Rank()
 }
 
 /*
@@ -157,15 +172,16 @@ URI converts CURIE to fully qualified URL
   wikipedia:CURIE ⟼ http://en.wikipedia.org/wiki/CURIE
 */
 func (iri ID) URI(prefix string) (*url.URL, error) {
-	if len(iri.IRI.Seq) == 0 {
+	if iri.IRI.IsEmpty() {
 		return &url.URL{}, nil
 	}
+	seq := iri.IRI.Seq()
 
-	if iri.IRI.Seq[0] == "" {
-		return url.Parse(strings.Join(iri.IRI.Seq[1:], "/"))
+	if seq[0] == "" {
+		return url.Parse(strings.Join(seq[1:], "/"))
 	}
 
-	return url.Parse(prefix + strings.Join(iri.IRI.Seq[1:], "/"))
+	return url.Parse(prefix + strings.Join(seq[1:], "/"))
 }
 
 /*
@@ -173,7 +189,7 @@ func (iri ID) URI(prefix string) (*url.URL, error) {
 Path converts CURIE to relative file system path.
 */
 func (iri ID) Path() string {
-	return path.Join(iri.IRI.Seq...)
+	return path.Join(iri.IRI.Seq()...)
 }
 
 /*
@@ -181,7 +197,7 @@ func (iri ID) Path() string {
 Seq converts CURIE to sequence of segments
 */
 func (iri ID) Seq() []string {
-	return iri.IRI.Seq
+	return iri.IRI.Seq()
 }
 
 /*
@@ -214,31 +230,44 @@ IRI is compact URI, defined as superset of XML QNames.
   prefix      :=   NCName
   reference   :=   irelative-ref (as defined in IRI)
 */
-type IRI struct {
-	Seq []string
+type CURIE struct {
+	seq []string
 }
 
 /*
 
 NewIRI transform category of strings to CURIE.
+TODO: rename Parse
 */
-func NewIRI(iri string, args ...interface{}) IRI {
+func NewIRI(iri string, args ...interface{}) CURIE {
 	val := iri
 
 	if len(args) > 0 {
 		val = fmt.Sprintf(iri, args...)
 	}
 
-	return IRI{
-		Seq: split(strings.Trim(val, "[]")),
+	return CURIE{
+		seq: split(strings.Trim(val, "[]")),
 	}
+}
+
+func (iri CURIE) IsEmpty() bool {
+	return len(iri.seq) == 0
+}
+
+func (iri CURIE) Rank() int {
+	return len(iri.seq)
+}
+
+func (iri CURIE) Seq() []string {
+	return iri.seq
 }
 
 /*
 
 This return pointer to itself
 */
-func (iri IRI) This() *IRI {
+func (iri CURIE) This() IRI {
 	return &iri
 }
 
@@ -246,15 +275,15 @@ func (iri IRI) This() *IRI {
 
 String transform CURIE to string
 */
-func (iri IRI) String() string {
-	return join(iri.Seq)
+func (iri CURIE) String() string {
+	return join(iri.seq)
 }
 
 /*
 
 Safe transforms CURIE to safe string
 */
-func (iri IRI) Safe() string {
+func (iri CURIE) Safe() string {
 	return "[" + iri.String() + "]"
 }
 
@@ -267,40 +296,40 @@ non immediate value distant at rank.
 	a:b/c/d/e ⟼² a:b/c
 	a:b/c/d/e ⟼³ a:b
 */
-func (iri IRI) Parent(rank ...int) IRI {
+func (iri CURIE) Parent(rank ...int) IRI {
 	r := 1
 	if len(rank) > 0 {
 		r = rank[0]
 	}
 
-	n := len(iri.Seq) - r
+	n := len(iri.seq) - r
 	if n < 0 {
-		return IRI{Seq: []string{}}
+		return CURIE{seq: []string{}}
 	}
 
-	if n == 1 && iri.Seq[0] == "" {
-		return IRI{Seq: []string{}}
+	if n == 1 && iri.seq[0] == "" {
+		return CURIE{seq: []string{}}
 	}
 
-	return IRI{Seq: append([]string{}, iri.Seq[:n]...)}
+	return CURIE{seq: append([]string{}, iri.seq[:n]...)}
 }
 
 /*
 
 Prefix decomposes CURIE and return its prefix CURIE (parent) as string value.
 */
-func (iri IRI) Prefix(rank ...int) string {
+func (iri CURIE) Prefix(rank ...int) string {
 	r := 1
 	if len(rank) > 0 {
 		r = rank[0]
 	}
 
-	n := len(iri.Seq) - r
+	n := len(iri.seq) - r
 	if n < 0 {
 		return ""
 	}
 
-	return join(iri.Seq[:n])
+	return join(iri.seq[:n])
 }
 
 /*
@@ -312,18 +341,18 @@ Suffix decomposes CURIE and return its suffix.
 	...
 	a:b/c/d/e ⟿ⁿ a:b/c/d/e
 */
-func (iri IRI) Suffix(rank ...int) string {
+func (iri CURIE) Suffix(rank ...int) string {
 	r := 1
 	if len(rank) > 0 {
 		r = rank[0]
 	}
 
-	n := len(iri.Seq) - r
+	n := len(iri.seq) - r
 	if n > 0 {
-		return strings.Join(iri.Seq[n:len(iri.Seq)], "/")
+		return strings.Join(iri.seq[n:len(iri.seq)], "/")
 	}
 
-	return join(iri.Seq)
+	return join(iri.seq)
 }
 
 /*
@@ -331,8 +360,8 @@ func (iri IRI) Suffix(rank ...int) string {
 Join composes segments into new descendant CURIE.
   a:b × [c, d, e] ⟼ a:b/c/d/e
 */
-func (iri IRI) Join(segments ...string) IRI {
-	seq := append([]string{}, iri.Seq...)
+func (iri CURIE) Join(segments ...string) IRI {
+	seq := append([]string{}, iri.seq...)
 	for _, x := range segments {
 		seq = append(seq,
 			strings.FieldsFunc(x,
@@ -343,7 +372,7 @@ func (iri IRI) Join(segments ...string) IRI {
 		)
 	}
 
-	return IRI{Seq: seq}
+	return CURIE{seq: seq}
 }
 
 /*
@@ -352,21 +381,22 @@ Heir composes two CURIEs into new descendant CURIE.
 	a:b × c/d/e ⟼ a:b/c/d/e
 	a:b × c:d/e ⟼ a:b/c/d/e
 */
-func (iri IRI) Heir(other IRI) IRI {
-	return IRI{Seq: append(append([]string{}, iri.Seq...), other.Seq...)}
+func (iri CURIE) Heir(other IRI) IRI {
+	return CURIE{seq: append(append([]string{}, iri.seq...), other.Seq()...)}
 }
 
 /*
 
 Eq compares two CURIEs, return true if they are equal.
 */
-func (iri IRI) Eq(x IRI) bool {
-	if len(iri.Seq) != len(x.Seq) {
+func (iri CURIE) Eq(x IRI) bool {
+	if iri.Rank() != x.Rank() {
 		return false
 	}
 
-	for i, v := range iri.Seq {
-		if x.Seq[i] != v {
+	seq := x.Seq()
+	for i, v := range iri.seq {
+		if seq[i] != v {
 			return false
 		}
 	}
@@ -378,14 +408,15 @@ func (iri IRI) Eq(x IRI) bool {
 
 Lt compares two CURIEs, return true if left element is less than supplied one.
 */
-func (iri IRI) Lt(x IRI) bool {
-	if len(iri.Seq) != len(x.Seq) {
-		return len(iri.Seq) < len(x.Seq)
+func (iri CURIE) Lt(x IRI) bool {
+	if iri.Rank() != x.Rank() {
+		return iri.Rank() < x.Rank()
 	}
 
-	for i, v := range iri.Seq {
-		if x.Seq[i] != v {
-			return v < x.Seq[i]
+	seq := x.Seq()
+	for i, v := range iri.seq {
+		if seq[i] != v {
+			return v < seq[i]
 		}
 	}
 
@@ -396,8 +427,8 @@ func (iri IRI) Lt(x IRI) bool {
 
 MarshalJSON `IRI ⟼ "[prefix:suffix]"`
 */
-func (iri IRI) MarshalJSON() ([]byte, error) {
-	if len(iri.Seq) == 0 {
+func (iri CURIE) MarshalJSON() ([]byte, error) {
+	if len(iri.seq) == 0 {
 		return json.Marshal("")
 	}
 
@@ -408,14 +439,14 @@ func (iri IRI) MarshalJSON() ([]byte, error) {
 
 UnmarshalJSON `"[prefix:suffix]" ⟼ IRI`
 */
-func (iri *IRI) UnmarshalJSON(b []byte) error {
+func (iri *CURIE) UnmarshalJSON(b []byte) error {
 	var path string
 	err := json.Unmarshal(b, &path)
 	if err != nil {
 		return err
 	}
 
-	*iri = New(path).IRI
+	*iri = NewIRI(path)
 	return nil
 }
 
@@ -423,30 +454,30 @@ func (iri *IRI) UnmarshalJSON(b []byte) error {
 
 MarshalDynamoDBAttributeValue `IRI ⟼ "prefix:suffix"`
 */
-func (iri IRI) MarshalDynamoDBAttributeValue(av *dynamodb.AttributeValue) error {
-	if len(iri.Seq) == 0 {
-		av.NULL = aws.Bool(true)
-		return nil
-	}
+// func (iri IRI) MarshalDynamoDBAttributeValue(av *dynamodb.AttributeValue) error {
+// 	if len(iri.Seq) == 0 {
+// 		av.NULL = aws.Bool(true)
+// 		return nil
+// 	}
 
-	// Note: we are using string representation to allow linked data in dynamo tables
-	val, err := dynamodbattribute.Marshal(iri.String())
-	if err != nil {
-		return err
-	}
+// 	// Note: we are using string representation to allow linked data in dynamo tables
+// 	val, err := dynamodbattribute.Marshal(iri.String())
+// 	if err != nil {
+// 		return err
+// 	}
 
-	av.S = val.S
-	return nil
-}
+// 	av.S = val.S
+// 	return nil
+// }
 
 /*
 
 UnmarshalDynamoDBAttributeValue `"prefix:suffix" ⟼ IRI`
 */
-func (iri *IRI) UnmarshalDynamoDBAttributeValue(av *dynamodb.AttributeValue) error {
-	*iri = NewIRI(aws.StringValue(av.S))
-	return nil
-}
+// func (iri *IRI) UnmarshalDynamoDBAttributeValue(av *dynamodb.AttributeValue) error {
+// 	*iri = NewIRI(aws.StringValue(av.S))
+// 	return nil
+// }
 
 //------------------------------------------------------------------------------
 //
