@@ -13,28 +13,27 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/fogfish/curie"
 	"github.com/fogfish/it"
 )
 
 var (
-	rZ curie.ID = curie.New("")
-	r0 curie.ID = curie.New("a:")
-	r1 curie.ID = curie.New("b")
-	r2 curie.ID = curie.New("a:b")
-	r3 curie.ID = curie.New("a:b/c")
-	r4 curie.ID = curie.New("a:b/c/d")
-	r5 curie.ID = curie.New("a:b/c/d/e")
+	rZ curie.IRI = curie.New("")
+	r0 curie.IRI = curie.New("a:")
+	r1 curie.IRI = curie.New("b")
+	r2 curie.IRI = curie.New("a:b")
+	r3 curie.IRI = curie.New("a:b/c")
+	r4 curie.IRI = curie.New("a:b/c/d")
+	r5 curie.IRI = curie.New("a:b/c/d/e")
 
-	w0 curie.ID = curie.New("a+b+c+d:")
-	w1 curie.ID = curie.New("b+c+d")
-	w2 curie.ID = curie.New("a:b+c+d")
-	w3 curie.ID = curie.New("a:b+c+d/e")
+	w0 curie.IRI = curie.New("a+b+c+d:")
+	w1 curie.IRI = curie.New("b+c+d")
+	w2 curie.IRI = curie.New("a:b+c+d")
+	w3 curie.IRI = curie.New("a:b+c+d/e")
 )
 
 func TestIRI(t *testing.T) {
-	test := map[*curie.ID][]string{
+	test := map[*curie.IRI][]string{
 		&rZ: {},
 		&r0: {"a"},
 		&r1: {"", "b"},
@@ -51,12 +50,12 @@ func TestIRI(t *testing.T) {
 
 	for k, v := range test {
 		it.Ok(t).
-			If(*k).Should().Equal(curie.ID{curie.IRI{v}})
+			If(k.Seq()).Should().Equal(v)
 	}
 }
 
 func TestSafeIRI(t *testing.T) {
-	for k, v := range map[string]*curie.ID{
+	for k, v := range map[string]*curie.IRI{
 		"[]":          &rZ,
 		"[a:]":        &r0,
 		"[b]":         &r1,
@@ -72,7 +71,7 @@ func TestSafeIRI(t *testing.T) {
 }
 
 func TestIdentity(t *testing.T) {
-	test := map[*curie.ID]string{
+	test := map[*curie.IRI]string{
 		&rZ: "",
 		&r0: "a:",
 		&r1: "b",
@@ -88,19 +87,34 @@ func TestIdentity(t *testing.T) {
 
 	for k, v := range test {
 		it.Ok(t).
-			If(k.IRI.String()).Should().Equal(v)
+			If(k.String()).Should().Equal(v)
 	}
 }
 
-func TestThis(t *testing.T) {
-	iri := curie.NewIRI("a:b/c/d/")
+func TestOrigin(t *testing.T) {
+	test := map[*curie.IRI][]curie.IRI{
+		&rZ: {rZ, rZ, rZ, rZ, rZ, rZ},
+		&r0: {r0, r0, r0, r0, r0, r0},
+		// &r1: {rZ, rZ, r1, r1, r1, r1},
+		&r2: {r0, r0, r2, r2, r2, r2},
+		&r3: {r0, r0, r2, r3, r3, r3},
+		&r4: {r0, r0, r2, r3, r4, r4},
+		&r5: {r0, r0, r2, r3, r4, r5},
+	}
 
-	it.Ok(t).
-		If(iri.This()).Should().Equal(&iri)
+	for k, v := range test {
+		it.Ok(t).
+			If(k.Origin()).Should().Equal(v[0]).
+			If(k.Origin(1)).Should().Equal(v[1]).
+			If(k.Origin(2)).Should().Equal(v[2]).
+			If(k.Origin(3)).Should().Equal(v[3]).
+			If(k.Origin(4)).Should().Equal(v[4]).
+			If(k.Origin(5)).Should().Equal(v[5])
+	}
 }
 
 func TestPrefix(t *testing.T) {
-	test := map[*curie.ID][]string{
+	test := map[*curie.IRI][]string{
 		&rZ: {"", "", "", "", "", ""},
 		&r0: {"", "", "", "", "", ""},
 		&r1: {"", "", "", "", "", ""},
@@ -122,7 +136,7 @@ func TestPrefix(t *testing.T) {
 }
 
 func TestSuffix(t *testing.T) {
-	test := map[*curie.ID][]string{
+	test := map[*curie.IRI][]string{
 		&rZ: {"", "", "", "", "", ""},
 		&r0: {"a:", "a:", "a:", "a:", "a:", "a:"},
 		&r1: {"b", "b", "b", "b", "b", "b"},
@@ -144,7 +158,7 @@ func TestSuffix(t *testing.T) {
 }
 
 func TestParent(t *testing.T) {
-	test := map[*curie.ID][]curie.ID{
+	test := map[*curie.IRI][]curie.IRI{
 		&rZ: {rZ, rZ, rZ, rZ, rZ, rZ},
 		&r0: {rZ, rZ, rZ, rZ, rZ, rZ},
 		&r1: {rZ, rZ, rZ, rZ, rZ, rZ},
@@ -197,7 +211,7 @@ func TestJoinImmutable(t *testing.T) {
 }
 
 func TestHeir(t *testing.T) {
-	for k, v := range map[*curie.ID][]curie.ID{
+	for k, v := range map[*curie.IRI][]curie.IRI{
 		&rZ: {r5, curie.New("a:b/c/d/e")},
 		&r0: {r5, curie.New("a:a/b/c/d/e")},
 		&r1: {r5, curie.New("b/a/b/c/d/e")},
@@ -239,7 +253,7 @@ func TestCURIE2URI(t *testing.T) {
 }
 
 func TestPath(t *testing.T) {
-	test := map[*curie.ID]string{
+	test := map[*curie.IRI]string{
 		&rZ: "",
 		&r0: "a",
 		&r1: "b",
@@ -256,7 +270,7 @@ func TestPath(t *testing.T) {
 }
 
 func TestEq(t *testing.T) {
-	test := []curie.ID{r0, r1, r2, r3, r4, r5}
+	test := []curie.IRI{r0, r1, r2, r3, r4, r5}
 
 	for _, v := range test {
 		it.Ok(t).
@@ -267,7 +281,7 @@ func TestEq(t *testing.T) {
 
 func TestNotEq(t *testing.T) {
 	r6 := curie.New("1:2:3:4:5:6")
-	test := []curie.ID{r0, r1, r2, r3, r4, r5}
+	test := []curie.IRI{r0, r1, r2, r3, r4, r5}
 
 	for _, v := range test {
 		it.Ok(t).
@@ -293,8 +307,8 @@ func TestLt(t *testing.T) {
 
 func TestJSON(t *testing.T) {
 	type Struct struct {
-		curie.ID
-		Title string `json:"title"`
+		ID    curie.IRI `json:"id"`
+		Title string    `json:"title"`
 	}
 
 	test := map[*Struct]string{
@@ -319,43 +333,17 @@ func TestJSON(t *testing.T) {
 	}
 }
 
-func TestDynamo(t *testing.T) {
-	type Struct struct {
-		curie.ID
-		Title string `dynamodbav:"title"`
-	}
-
-	test := []Struct{
-		{ID: curie.New(""), Title: "t"},
-		{ID: curie.New("a"), Title: "t"},
-		{ID: curie.New("a:b"), Title: "t"},
-		{ID: curie.New("a:b:c"), Title: "t"},
-	}
-
-	for _, eg := range test {
-		in := Struct{}
-
-		gen, err1 := dynamodbattribute.MarshalMap(eg)
-		err2 := dynamodbattribute.UnmarshalMap(gen, &in)
-
-		it.Ok(t).
-			If(err1).Should().Equal(nil).
-			If(err2).Should().Equal(nil).
-			If(eg).Should().Equal(in)
-	}
-}
-
 func TestTypeSafe(t *testing.T) {
-	type A struct{ curie.ID }
-	type B struct{ curie.ID }
-	type C struct{ curie.ID }
+	type A struct{ curie.IRI }
+	type B struct{ curie.IRI }
+	type C struct{ curie.IRI }
 
 	a := A{curie.New("a:")}
 	b := B{curie.New("a:b")}
-	c := C{b.Join("c")}
+	c := C{b.IRI.Join("c")}
 
 	it.Ok(t).
-		If(a.ID).Should().Equal(r0).
-		If(b.ID).Should().Equal(r2).
-		If(c.ID).Should().Equal(r3)
+		If(a.IRI).Should().Equal(r0).
+		If(b.IRI).Should().Equal(r2).
+		If(c.IRI).Should().Equal(r3)
 }
