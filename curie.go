@@ -22,200 +22,6 @@ import (
 	"strings"
 )
 
-/*
-
-Thing is the most generic type of item. The interfaces declares anything with
-unique identifier. Embedding CURIE ID into struct makes it Thing compatible.
-*/
-type Thing interface {
-	// The identifier property represents any kind of identifier for
-	// any kind of Thing
-	Identity() ID
-}
-
-/*
-
-IRI ...
-*/
-type IRI interface {
-	IsEmpty() bool
-	Rank() int
-	Seq() []string
-	String() string
-	Safe() string
-	Parent(rank ...int) IRI
-	Prefix(rank ...int) string
-	Suffix(rank ...int) string
-	Join(segments ...string) IRI
-	Heir(other IRI) IRI
-	Eq(x IRI) bool
-	Lt(x IRI) bool
-}
-
-//------------------------------------------------------------------------------
-//
-// ID
-//
-//------------------------------------------------------------------------------
-
-/*
-
-ID is compact URI (CURIE) type for struct tagging, It declares unique identity
-of a thing. The tagged struct belongs to Thing category (implements Thing interface)
-
-  type MyStruct struct {
-    curie.ID
-  }
-
-*/
-type ID struct {
-	IRI `dynamodbav:"id" json:"id"`
-}
-
-/*
-
-New transform category of strings to CURIE.
-*/
-func New(iri string, args ...interface{}) ID {
-	return ID{IRI: NewIRI(iri, args...)}
-}
-
-/*
-
-Identity makes CURIE compliant to Thing interface so that embedding ID makes any
-struct to be Thing.
-*/
-func (iri ID) Identity() ID {
-	return iri
-}
-
-/*
-
-IsEmpty returns true if compact URI is not defined (empty)
-*/
-func (iri ID) IsEmpty() bool {
-	return iri.IRI.IsEmpty()
-}
-
-/*
-
-Rank value of CURIE
-*/
-func (iri ID) Rank() int {
-	return iri.Rank()
-}
-
-/*
-
-Safe transforms CURIE to safe string
-*/
-func (iri ID) Safe() string {
-	return iri.IRI.Safe()
-}
-
-/*
-
-Parent decomposes CURIE and return its parent CURIE. It return immediate parent
-compact URI by default. Use optional rank param to extract "grant" parents,
-non immediate value distant at rank.
-	a:b/c/d/e ⟼¹ a:b/c/d
-	a:b/c/d/e ⟼² a:b/c
-	a:b/c/d/e ⟼³ a:b
-*/
-func (iri ID) Parent(rank ...int) ID {
-	return ID{IRI: iri.IRI.Parent(rank...)}
-}
-
-/*
-
-Prefix decomposes CURIE and return its prefix CURIE (parent) as string value.
-*/
-func (iri ID) Prefix(rank ...int) string {
-	return iri.IRI.Prefix(rank...)
-}
-
-/*
-
-Suffix decomposes CURIE and return its suffix.
-	a:b/c/d/e ⟿¹ e
-	a:b/c/d/e ⟿² d/e
-	a:b/c/d/e ⟿³ c/d/e
-	...
-	a:b/c/d/e ⟿ⁿ a:b/c/d/e
-*/
-func (iri ID) Suffix(rank ...int) string {
-	return iri.IRI.Suffix(rank...)
-}
-
-/*
-
-Join composes segments into new descendant CURIE.
-  a:b × [c, d, e] ⟼ a:b/c/d/e
-*/
-func (iri ID) Join(segments ...string) ID {
-	return ID{IRI: iri.IRI.Join(segments...)}
-}
-
-/*
-
-Heir composes two CURIEs into new descendant CURIE.
-	a:b × c/d/e ⟼ a:b/c/d/e
-	a:b × c:d/e ⟼ a:b/c/d/e
-*/
-func (iri ID) Heir(other ID) ID {
-	return ID{IRI: iri.IRI.Heir(other.IRI)}
-}
-
-/*
-
-URI converts CURIE to fully qualified URL
-  wikipedia:CURIE ⟼ http://en.wikipedia.org/wiki/CURIE
-*/
-func (iri ID) URI(prefix string) (*url.URL, error) {
-	if iri.IRI.IsEmpty() {
-		return &url.URL{}, nil
-	}
-	seq := iri.IRI.Seq()
-
-	if seq[0] == "" {
-		return url.Parse(strings.Join(seq[1:], "/"))
-	}
-
-	return url.Parse(prefix + strings.Join(seq[1:], "/"))
-}
-
-/*
-
-Path converts CURIE to relative file system path.
-*/
-func (iri ID) Path() string {
-	return path.Join(iri.IRI.Seq()...)
-}
-
-/*
-
-Seq converts CURIE to sequence of segments
-*/
-func (iri ID) Seq() []string {
-	return iri.IRI.Seq()
-}
-
-/*
-
-Eq compares two CURIEs, return true if they are equal.
-*/
-func (iri ID) Eq(x ID) bool {
-	return iri.IRI.Eq(x.IRI)
-}
-
-/*
-
-Lt compares two CURIEs, return true if left element is less than supplied one.
-*/
-func (iri ID) Lt(x ID) bool {
-	return iri.IRI.Lt(x.IRI)
-}
-
 //------------------------------------------------------------------------------
 //
 // IRI
@@ -230,52 +36,57 @@ IRI is compact URI, defined as superset of XML QNames.
   prefix      :=   NCName
   reference   :=   irelative-ref (as defined in IRI)
 */
-type CURIE struct {
+type IRI struct {
 	seq []string
 }
 
 /*
 
-NewIRI transform category of strings to CURIE.
-TODO: rename Parse
+New transform category of strings to IRI.
 */
-func NewIRI(iri string, args ...interface{}) CURIE {
+func New(iri string, args ...interface{}) IRI {
 	val := iri
 
 	if len(args) > 0 {
 		val = fmt.Sprintf(iri, args...)
 	}
 
-	return CURIE{
+	return IRI{
 		seq: split(strings.Trim(val, "[]")),
 	}
 }
 
-func (iri CURIE) IsEmpty() bool {
+/*
+
+IsEmpty is an alias to iri.Rank() == 0
+*/
+func (iri IRI) IsEmpty() bool {
 	return len(iri.seq) == 0
-}
-
-func (iri CURIE) Rank() int {
-	return len(iri.seq)
-}
-
-func (iri CURIE) Seq() []string {
-	return iri.seq
 }
 
 /*
 
-This return pointer to itself
+Rank of CURIE, number of segments
+Rank is an alias of len(iri.Seq())
 */
-func (iri CURIE) This() IRI {
-	return &iri
+func (iri IRI) Rank() int {
+	return len(iri.seq)
+}
+
+/*
+
+Seq Returns CURIE segments
+  a:b/c/d/e ⟼ [a, b, c, d]
+*/
+func (iri IRI) Seq() []string {
+	return iri.seq
 }
 
 /*
 
 String transform CURIE to string
 */
-func (iri CURIE) String() string {
+func (iri IRI) String() string {
 	return join(iri.seq)
 }
 
@@ -283,8 +94,55 @@ func (iri CURIE) String() string {
 
 Safe transforms CURIE to safe string
 */
-func (iri CURIE) Safe() string {
+func (iri IRI) Safe() string {
 	return "[" + iri.String() + "]"
+}
+
+/*
+
+Path converts CURIE to relative file system path.
+*/
+func (iri IRI) Path() string {
+	return path.Join(iri.seq...)
+}
+
+/*
+
+URI converts CURIE to fully qualified URL
+  wikipedia:CURIE ⟼ http://en.wikipedia.org/wiki/CURIE
+*/
+func (iri IRI) URI(prefix string) (*url.URL, error) {
+	if iri.IsEmpty() {
+		return &url.URL{}, nil
+	}
+	seq := iri.seq
+
+	if seq[0] == "" {
+		return url.Parse(strings.Join(seq[1:], "/"))
+	}
+
+	return url.Parse(prefix + strings.Join(seq[1:], "/"))
+}
+
+/*
+
+Origin decomposes CURIE and returns its source
+
+  a:b/c/d/e ⟼¹ a:
+	a:b/c/d/e ⟼² a:b
+	a:b/c/d/e ⟼³ a:b/c
+*/
+func (iri IRI) Origin(rank ...int) IRI {
+	r := 1
+	if len(rank) > 0 {
+		r = rank[0]
+	}
+
+	if iri.Rank() <= r {
+		return IRI{seq: append([]string{}, iri.seq...)}
+	}
+
+	return IRI{seq: append([]string{}, iri.seq[:r]...)}
 }
 
 /*
@@ -296,35 +154,35 @@ non immediate value distant at rank.
 	a:b/c/d/e ⟼² a:b/c
 	a:b/c/d/e ⟼³ a:b
 */
-func (iri CURIE) Parent(rank ...int) IRI {
+func (iri IRI) Parent(rank ...int) IRI {
 	r := 1
 	if len(rank) > 0 {
 		r = rank[0]
 	}
 
-	n := len(iri.seq) - r
+	n := iri.Rank() - r
 	if n < 0 {
-		return CURIE{seq: []string{}}
+		return IRI{seq: []string{}}
 	}
 
 	if n == 1 && iri.seq[0] == "" {
-		return CURIE{seq: []string{}}
+		return IRI{seq: []string{}}
 	}
 
-	return CURIE{seq: append([]string{}, iri.seq[:n]...)}
+	return IRI{seq: append([]string{}, iri.seq[:n]...)}
 }
 
 /*
 
 Prefix decomposes CURIE and return its prefix CURIE (parent) as string value.
 */
-func (iri CURIE) Prefix(rank ...int) string {
+func (iri IRI) Prefix(rank ...int) string {
 	r := 1
 	if len(rank) > 0 {
 		r = rank[0]
 	}
 
-	n := len(iri.seq) - r
+	n := iri.Rank() - r
 	if n < 0 {
 		return ""
 	}
@@ -341,13 +199,13 @@ Suffix decomposes CURIE and return its suffix.
 	...
 	a:b/c/d/e ⟿ⁿ a:b/c/d/e
 */
-func (iri CURIE) Suffix(rank ...int) string {
+func (iri IRI) Suffix(rank ...int) string {
 	r := 1
 	if len(rank) > 0 {
 		r = rank[0]
 	}
 
-	n := len(iri.seq) - r
+	n := iri.Rank() - r
 	if n > 0 {
 		return strings.Join(iri.seq[n:len(iri.seq)], "/")
 	}
@@ -360,7 +218,7 @@ func (iri CURIE) Suffix(rank ...int) string {
 Join composes segments into new descendant CURIE.
   a:b × [c, d, e] ⟼ a:b/c/d/e
 */
-func (iri CURIE) Join(segments ...string) IRI {
+func (iri IRI) Join(segments ...string) IRI {
 	seq := append([]string{}, iri.seq...)
 	for _, x := range segments {
 		seq = append(seq,
@@ -372,7 +230,7 @@ func (iri CURIE) Join(segments ...string) IRI {
 		)
 	}
 
-	return CURIE{seq: seq}
+	return IRI{seq: seq}
 }
 
 /*
@@ -381,15 +239,15 @@ Heir composes two CURIEs into new descendant CURIE.
 	a:b × c/d/e ⟼ a:b/c/d/e
 	a:b × c:d/e ⟼ a:b/c/d/e
 */
-func (iri CURIE) Heir(other IRI) IRI {
-	return CURIE{seq: append(append([]string{}, iri.seq...), other.Seq()...)}
+func (iri IRI) Heir(other IRI) IRI {
+	return IRI{seq: append(append([]string{}, iri.seq...), other.Seq()...)}
 }
 
 /*
 
 Eq compares two CURIEs, return true if they are equal.
 */
-func (iri CURIE) Eq(x IRI) bool {
+func (iri IRI) Eq(x IRI) bool {
 	if iri.Rank() != x.Rank() {
 		return false
 	}
@@ -408,7 +266,7 @@ func (iri CURIE) Eq(x IRI) bool {
 
 Lt compares two CURIEs, return true if left element is less than supplied one.
 */
-func (iri CURIE) Lt(x IRI) bool {
+func (iri IRI) Lt(x IRI) bool {
 	if iri.Rank() != x.Rank() {
 		return iri.Rank() < x.Rank()
 	}
@@ -427,8 +285,8 @@ func (iri CURIE) Lt(x IRI) bool {
 
 MarshalJSON `IRI ⟼ "[prefix:suffix]"`
 */
-func (iri CURIE) MarshalJSON() ([]byte, error) {
-	if len(iri.seq) == 0 {
+func (iri IRI) MarshalJSON() ([]byte, error) {
+	if iri.Rank() == 0 {
 		return json.Marshal("")
 	}
 
@@ -439,44 +297,72 @@ func (iri CURIE) MarshalJSON() ([]byte, error) {
 
 UnmarshalJSON `"[prefix:suffix]" ⟼ IRI`
 */
-func (iri *CURIE) UnmarshalJSON(b []byte) error {
+func (iri *IRI) UnmarshalJSON(b []byte) error {
 	var path string
 	err := json.Unmarshal(b, &path)
 	if err != nil {
 		return err
 	}
 
-	*iri = NewIRI(path)
+	*iri = New(path)
 	return nil
 }
 
+//------------------------------------------------------------------------------
+//
+// ID
+//
+//------------------------------------------------------------------------------
+
 /*
 
-MarshalDynamoDBAttributeValue `IRI ⟼ "prefix:suffix"`
-*/
-// func (iri IRI) MarshalDynamoDBAttributeValue(av *dynamodb.AttributeValue) error {
-// 	if len(iri.Seq) == 0 {
-// 		av.NULL = aws.Bool(true)
-// 		return nil
-// 	}
+ID is compact URI (CURIE) type for struct tagging, It declares unique identity
+of a thing. The tagged struct belongs to Thing category (implements Thing interface)
 
-// 	// Note: we are using string representation to allow linked data in dynamo tables
-// 	val, err := dynamodbattribute.Marshal(iri.String())
-// 	if err != nil {
+  type MyStruct struct {
+    curie.ID
+  }
+
+*/
+// type ID struct {
+// 	IRI IRI `json:"id"`
+// }
+
+// type ID struct {
+// 	IRI IRI `json:"id"`
+// }
+
+// TODO: fix compare
+
+// func (x X) MarshalJSON() ([]byte, error) {
+// 	return json.Marshal(x.Safe())
+// }
+
+// func (x *X) UnmarshalJSON(b []byte) error {
+// 	fmt.Println("================")
+// 	fmt.Println(string(b))
+
+// 	var iri IRI
+// 	if err := json.Unmarshal(b, &iri); err != nil {
 // 		return err
 // 	}
-
-// 	av.S = val.S
+// 	*x = X{iri}
 // 	return nil
+// }
+
+// func (gen ID) EncodeJSON(props interface{}) ([]byte, error) {
+// 	properties, err := json.Marshal(props)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 // }
 
 /*
 
-UnmarshalDynamoDBAttributeValue `"prefix:suffix" ⟼ IRI`
+NewID transform category of strings to curie.ID.
 */
-// func (iri *IRI) UnmarshalDynamoDBAttributeValue(av *dynamodb.AttributeValue) error {
-// 	*iri = NewIRI(aws.StringValue(av.S))
-// 	return nil
+// func NewID(iri string, args ...interface{}) ID {
+// 	return ID{IRI: New(iri, args...)}
 // }
 
 //------------------------------------------------------------------------------

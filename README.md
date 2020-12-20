@@ -81,14 +81,14 @@ Cross-linking of structured data is an essential part of type safe domain driven
 
 ```go
 type Person struct {
-  curie.ID
+  ID      curie.IRI
   Father  *curie.IRI
   Mother  *curie.IRI
   Friends []curie.IRI
 }
 ```
 
-`curie.ID` and `curie.IRI` are sibling, equivalent CURIE data type. `ID` is only used as primary key, `IRI` is a "pointer" to linked-data.
+This example uses CURIE data type. `ID` is only used as primary key, `IRI` is a "pointer" to linked-data.
 
 CURIE type is core type to organize hierarchies. An application declares `A ⟼ B` hierarchical relation using path at suffix. For example, the root is `curie.New("some:a")`, 2nd rank node `curie.New("some:a/b")` and so on `curie.New("some:a/b/c/e/f")`.
 
