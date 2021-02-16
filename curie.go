@@ -310,63 +310,6 @@ func (iri *IRI) UnmarshalJSON(b []byte) error {
 
 //------------------------------------------------------------------------------
 //
-// ID
-//
-//------------------------------------------------------------------------------
-
-/*
-
-ID is compact URI (CURIE) type for struct tagging, It declares unique identity
-of a thing. The tagged struct belongs to Thing category (implements Thing interface)
-
-  type MyStruct struct {
-    curie.ID
-  }
-
-*/
-// type ID struct {
-// 	IRI IRI `json:"id"`
-// }
-
-// type ID struct {
-// 	IRI IRI `json:"id"`
-// }
-
-// TODO: fix compare
-
-// func (x X) MarshalJSON() ([]byte, error) {
-// 	return json.Marshal(x.Safe())
-// }
-
-// func (x *X) UnmarshalJSON(b []byte) error {
-// 	fmt.Println("================")
-// 	fmt.Println(string(b))
-
-// 	var iri IRI
-// 	if err := json.Unmarshal(b, &iri); err != nil {
-// 		return err
-// 	}
-// 	*x = X{iri}
-// 	return nil
-// }
-
-// func (gen ID) EncodeJSON(props interface{}) ([]byte, error) {
-// 	properties, err := json.Marshal(props)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// }
-
-/*
-
-NewID transform category of strings to curie.ID.
-*/
-// func NewID(iri string, args ...interface{}) ID {
-// 	return ID{IRI: New(iri, args...)}
-// }
-
-//------------------------------------------------------------------------------
-//
 // private
 //
 //------------------------------------------------------------------------------
