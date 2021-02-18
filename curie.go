@@ -58,6 +58,14 @@ func New(iri string, args ...interface{}) IRI {
 
 /*
 
+This ...
+*/
+func (iri IRI) This() *IRI {
+	return &iri
+}
+
+/*
+
 IsEmpty is an alias to iri.Rank() == 0
 */
 func (iri IRI) IsEmpty() bool {
@@ -126,11 +134,12 @@ func (iri IRI) URI(prefix string) (*url.URL, error) {
 
 /*
 
-Origin decomposes CURIE and returns its source
-
-  a:b/c/d/e ⟼¹ a:
-	a:b/c/d/e ⟼² a:b
-	a:b/c/d/e ⟼³ a:b/c
+Origin decomposes CURIE and returns its source.
+  a:b/c/d/e ⟼¹ a:       a:b/c/d/e ⟼⁻¹ a:b/c/d
+  a:b/c/d/e ⟼² a:b      a:b/c/d/e ⟼⁻² a:b/c
+  a:b/c/d/e ⟼³ a:b/c    a:b/c/d/e ⟼⁻³ a:b
+    ...
+  a:b/c/d/e ⟼ⁿ a:       a:b/c/d/e ⟼⁻ⁿ a:
 */
 func (iri IRI) Origin(rank ...int) IRI {
 	r := 1
@@ -138,21 +147,29 @@ func (iri IRI) Origin(rank ...int) IRI {
 		r = rank[0]
 	}
 
-	if iri.Rank() <= r {
-		return IRI{seq: append([]string{}, iri.seq...)}
+	if r < 0 {
+		r = len(iri.seq) + r
 	}
 
-	return IRI{seq: append([]string{}, iri.seq[:r]...)}
+	switch {
+	case r < 0:
+		return IRI{seq: []string{}}
+	case iri.Rank() <= r:
+		return IRI{seq: append([]string{}, iri.seq...)}
+	default:
+		return IRI{seq: append([]string{}, iri.seq[:r]...)}
+	}
 }
 
 /*
 
 Parent decomposes CURIE and return its parent CURIE. It return immediate parent
-compact URI by default. Use optional rank param to extract "grant" parents,
-non immediate value distant at rank.
-	a:b/c/d/e ⟼¹ a:b/c/d
-	a:b/c/d/e ⟼² a:b/c
-	a:b/c/d/e ⟼³ a:b
+compact URI by default.
+  a:b/c/d/e ⟼¹ a:b/c/d  a:b/c/d/e ⟼⁻¹ a:
+  a:b/c/d/e ⟼² a:b/c    a:b/c/d/e ⟼⁻² a:b
+  a:b/c/d/e ⟼³ a:b      a:b/c/d/e ⟼⁻³ a:b/c
+  ...
+  a:b/c/d/e ⟼ⁿ a:       a:b/c/d/e ⟼⁻ⁿ a:b/c/d/e
 */
 func (iri IRI) Parent(rank ...int) IRI {
 	r := 1
@@ -160,16 +177,21 @@ func (iri IRI) Parent(rank ...int) IRI {
 		r = rank[0]
 	}
 
-	n := iri.Rank() - r
-	if n < 0 {
-		return IRI{seq: []string{}}
+	if r < 0 {
+		r = len(iri.seq) + r
 	}
 
-	if n == 1 && iri.seq[0] == "" {
+	n := len(iri.seq) - r
+	switch {
+	case n < 0:
 		return IRI{seq: []string{}}
+	case n > len(iri.seq):
+		return IRI{seq: append([]string{}, iri.seq...)}
+	case n == 1 && iri.seq[0] == "":
+		return IRI{seq: []string{}}
+	default:
+		return IRI{seq: append([]string{}, iri.seq[:n]...)}
 	}
-
-	return IRI{seq: append([]string{}, iri.seq[:n]...)}
 }
 
 /*
@@ -193,16 +215,20 @@ func (iri IRI) Prefix(rank ...int) string {
 /*
 
 Suffix decomposes CURIE and return its suffix.
-	a:b/c/d/e ⟿¹ e
-	a:b/c/d/e ⟿² d/e
-	a:b/c/d/e ⟿³ c/d/e
-	...
-	a:b/c/d/e ⟿ⁿ a:b/c/d/e
+  a:b/c/d/e ⟿¹ e          a:b/c/d/e ⟿⁻¹ b/c/d/e
+  a:b/c/d/e ⟿² d/e        a:b/c/d/e ⟿⁻² c/d/e
+  a:b/c/d/e ⟿³ c/d/e      a:b/c/d/e ⟿⁻³ d/e
+  ...
+  a:b/c/d/e ⟿ⁿ a:b/c/d/e  a:b/c/d/e ⟿⁻ⁿ e
 */
 func (iri IRI) Suffix(rank ...int) string {
 	r := 1
 	if len(rank) > 0 {
 		r = rank[0]
+	}
+
+	if r < 0 {
+		r = len(iri.seq) + r
 	}
 
 	n := iri.Rank() - r
