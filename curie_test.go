@@ -200,7 +200,8 @@ func TextSuffixNegative(t *testing.T) {
 			If(k.Suffix(-2)).Should().Equal(v[1]).
 			If(k.Suffix(-3)).Should().Equal(v[2]).
 			If(k.Suffix(-4)).Should().Equal(v[3]).
-			If(k.Suffix(-5)).Should().Equal(v[4])
+			If(k.Suffix(-5)).Should().Equal(v[4]).
+			If(k.Suffix(-6)).Should().Equal(v[4])
 	}
 }
 
@@ -243,7 +244,8 @@ func TestParentNegative(t *testing.T) {
 			If(k.Parent(-2)).Should().Equal(v[1]).
 			If(k.Parent(-3)).Should().Equal(v[2]).
 			If(k.Parent(-4)).Should().Equal(v[3]).
-			If(k.Parent(-5)).Should().Equal(v[4])
+			If(k.Parent(-5)).Should().Equal(v[4]).
+			If(k.Parent(-6)).Should().Equal(v[4])
 
 	}
 }
