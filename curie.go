@@ -232,11 +232,14 @@ func (iri IRI) Suffix(rank ...int) string {
 	}
 
 	n := iri.Rank() - r
-	if n > 0 {
+	switch {
+	case n >= len(iri.seq):
+		return ""
+	case n > 0:
 		return strings.Join(iri.seq[n:len(iri.seq)], "/")
+	default:
+		return join(iri.seq)
 	}
-
-	return join(iri.seq)
 }
 
 /*

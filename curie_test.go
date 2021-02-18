@@ -183,11 +183,11 @@ func TestSuffix(t *testing.T) {
 	}
 }
 
-func TextSuffixNegative(t *testing.T) {
+func TestSuffixNegative(t *testing.T) {
 	test := map[*curie.IRI][]string{
 		&rZ: {"", "", "", "", ""},
 		&r0: {"", "", "", "", ""},
-		&r1: {"", "", "", "", ""},
+		&r1: {"b", "", "", "", ""},
 		&r2: {"b", "", "", "", ""},
 		&r3: {"b/c", "c", "", "", ""},
 		&r4: {"b/c/d", "c/d", "d", "", ""},
