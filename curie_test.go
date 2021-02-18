@@ -91,6 +91,12 @@ func TestIdentity(t *testing.T) {
 	}
 }
 
+func TestThis(t *testing.T) {
+	it.Ok(t).
+		IfNotNil(r5.This()).
+		IfTrue(r5.This().Eq(r5))
+}
+
 func TestOrigin(t *testing.T) {
 	test := map[*curie.IRI][]curie.IRI{
 		&rZ: {rZ, rZ, rZ, rZ, rZ, rZ},
