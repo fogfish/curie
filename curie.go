@@ -58,7 +58,7 @@ func New(iri string, args ...interface{}) IRI {
 
 /*
 
-This ...
+This is helper function to lift IRI into pointer
 */
 func (iri IRI) This() *IRI {
 	return &iri
