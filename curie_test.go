@@ -70,6 +70,16 @@ func TestSafeIRI(t *testing.T) {
 	}
 }
 
+func TestURI(t *testing.T) {
+	uri := "https://example.com/a/b/c?de=fg&foo=bar"
+	c := curie.New(uri)
+
+	it.Ok(t).
+		If(c.String()).Equal(uri).
+		If(c.Safe()).Equal("[" + uri + "]").
+		If(c.Seq()).Equal([]string{"https", "", "", "example.com", "a", "b", "c?de=fg&foo=bar"})
+}
+
 func TestIdentity(t *testing.T) {
 	test := map[*curie.IRI]string{
 		&rZ: "",
