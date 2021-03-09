@@ -74,6 +74,23 @@ a.Eq(b)
 a.Lt(b)
 ```
 
+### URI compatibility
+
+The datatype is compatible with traditional URIs
+
+```go
+// any absolute URIs are parsable to CURIE
+compact := curie.New("https://example.com/a/b/c")
+
+// String is an identity function
+//   ⟿ https://example.com/a/b/c
+compact.String()
+
+//
+// expands compact URI to absolute one
+//   ⟿ https://example.com/a/b/c
+url, err := compact.URI("https://example.com/a/b/c")
+```
 
 ### Linked-data
 

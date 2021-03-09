@@ -70,6 +70,22 @@ func TestSafeIRI(t *testing.T) {
 	}
 }
 
+func TestURI(t *testing.T) {
+	uri := "https://example.com/a/b/c?de=fg&foo=bar"
+	curi := curie.New(uri)
+
+	expect, _ := url.Parse(uri)
+	native, err := curi.URI("https:")
+
+	it.Ok(t).
+		If(curi.String()).Equal(uri).
+		If(curi.Safe()).Equal("[" + uri + "]").
+		If(curi.Seq()).Equal([]string{"https", "", "", "example.com", "a", "b", "c?de=fg&foo=bar"}).
+		//
+		IfNil(err).
+		If(native).Equal(expect)
+}
+
 func TestIdentity(t *testing.T) {
 	test := map[*curie.IRI]string{
 		&rZ: "",
