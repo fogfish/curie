@@ -306,6 +306,7 @@ func Lt(a, b IRI) bool {
 		}
 	}
 
+	fmt.Println("====")
 	return false
 }
 

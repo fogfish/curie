@@ -52,6 +52,9 @@ func TestIRI(t *testing.T) {
 		it.Ok(t).
 			If(curie.Seq(*k)).Should().Equal(v)
 	}
+
+	it.Ok(t).
+		If(curie.New("a:b/c/d/%s", "e").String()).Equal("a:b/c/d/e")
 }
 
 func TestSafeIRI(t *testing.T) {
@@ -107,48 +110,6 @@ func TestIdentity(t *testing.T) {
 			If(k.String()).Should().Equal(v)
 	}
 }
-
-// func TestOrigin(t *testing.T) {
-// 	test := map[*curie.IRI][]curie.IRI{
-// 		&rZ: {rZ, rZ, rZ, rZ, rZ, rZ},
-// 		&r0: {r0, r0, r0, r0, r0, r0},
-// 		// &r1: {rZ, rZ, r1, r1, r1, r1},
-// 		&r2: {r0, r0, r2, r2, r2, r2},
-// 		&r3: {r0, r0, r2, r3, r3, r3},
-// 		&r4: {r0, r0, r2, r3, r4, r4},
-// 		&r5: {r0, r0, r2, r3, r4, r5},
-// 	}
-
-// 	for k, v := range test {
-// 		it.Ok(t).
-// 			If(k.Origin()).Should().Equal(v[0]).
-// 			If(k.Origin(1)).Should().Equal(v[1]).
-// 			If(k.Origin(2)).Should().Equal(v[2]).
-// 			If(k.Origin(3)).Should().Equal(v[3]).
-// 			If(k.Origin(4)).Should().Equal(v[4]).
-// 			If(k.Origin(5)).Should().Equal(v[5])
-// 	}
-// }
-
-// func TestOriginNegative(t *testing.T) {
-// 	test := map[*curie.IRI][]curie.IRI{
-// 		&rZ: {rZ, rZ, rZ, rZ, rZ},
-// 		&r0: {rZ, rZ, rZ, rZ, rZ},
-// 		&r2: {r0, rZ, rZ, rZ, rZ},
-// 		&r3: {r2, r0, rZ, rZ, rZ},
-// 		&r4: {r3, r2, r0, rZ, rZ},
-// 		&r5: {r4, r3, r2, r0, rZ},
-// 	}
-
-// 	for k, v := range test {
-// 		it.Ok(t).
-// 			If(k.Origin(-1)).Should().Equal(v[0]).
-// 			If(k.Origin(-2)).Should().Equal(v[1]).
-// 			If(k.Origin(-3)).Should().Equal(v[2]).
-// 			If(k.Origin(-4)).Should().Equal(v[3]).
-// 			If(k.Origin(-5)).Should().Equal(v[4])
-// 	}
-// }
 
 func TestPrefix(t *testing.T) {
 	test := map[*curie.IRI][]string{
@@ -383,7 +344,8 @@ func TestLt(t *testing.T) {
 		"a:x/x/a": "a:x/x/x/a",
 	} {
 		it.Ok(t).
-			If(curie.Lt(curie.New(a), curie.New(b))).Should().Equal(true)
+			If(curie.Lt(curie.New(a), curie.New(b))).Should().Equal(true).
+			If(curie.Lt(curie.New(b), curie.New(a))).Should().Equal(false)
 	}
 }
 
