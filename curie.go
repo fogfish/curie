@@ -42,56 +42,6 @@ type IRI struct {
 
 /*
 
-New transform category of strings to IRI.
-*/
-func New(iri string, args ...interface{}) IRI {
-	val := iri
-
-	if len(args) > 0 {
-		val = fmt.Sprintf(iri, args...)
-	}
-
-	return IRI{
-		seq: split(strings.Trim(val, "[]")),
-	}
-}
-
-/*
-
-This is helper function to lift IRI into pointer
-*/
-func (iri IRI) This() *IRI {
-	return &iri
-}
-
-/*
-
-IsEmpty is an alias to iri.Rank() == 0
-*/
-func (iri IRI) IsEmpty() bool {
-	return len(iri.seq) == 0
-}
-
-/*
-
-Rank of CURIE, number of segments
-Rank is an alias of len(iri.Seq())
-*/
-func (iri IRI) Rank() int {
-	return len(iri.seq)
-}
-
-/*
-
-Seq Returns CURIE segments
-  a:b/c/d/e ⟼ [a, b, c, d]
-*/
-func (iri IRI) Seq() []string {
-	return iri.seq
-}
-
-/*
-
 String transform CURIE to string
 */
 func (iri IRI) String() string {
@@ -108,9 +58,86 @@ func (iri IRI) Safe() string {
 
 /*
 
+MarshalJSON `IRI ⟼ "[prefix:suffix]"`
+*/
+func (iri IRI) MarshalJSON() ([]byte, error) {
+	if Rank(iri) == 0 {
+		return json.Marshal("")
+	}
+
+	return json.Marshal(iri.Safe())
+}
+
+/*
+
+UnmarshalJSON `"[prefix:suffix]" ⟼ IRI`
+*/
+func (iri *IRI) UnmarshalJSON(b []byte) error {
+	var path string
+	err := json.Unmarshal(b, &path)
+	if err != nil {
+		return err
+	}
+
+	*iri = New(path)
+	return nil
+}
+
+/*
+
+New transform category of strings to IRI.
+*/
+func New(iri string, args ...interface{}) IRI {
+	val := iri
+
+	if len(args) > 0 {
+		val = fmt.Sprintf(iri, args...)
+	}
+
+	return IRI{
+		seq: split(strings.Trim(val, "[]")),
+	}
+}
+
+/*
+
+IsEmpty is an alias to curie.Rank(iri) == 0
+*/
+func IsEmpty(iri IRI) bool {
+	return len(iri.seq) == 0
+}
+
+/*
+
+Rank of CURIE, number of segments
+Rank is an alias of len(curie.Seq(iri))
+*/
+func Rank(iri IRI) int {
+	return len(iri.seq)
+}
+
+/*
+
+Seq Returns CURIE segments
+  a:b/c/d/e ⟼ [a, b, c, d]
+*/
+func Seq(iri IRI) []string {
+	return iri.seq
+}
+
+/*
+
+Safe transforms CURIE to safe string
+*/
+func Safe(iri IRI) string {
+	return "[" + iri.String() + "]"
+}
+
+/*
+
 Path converts CURIE to relative file system path.
 */
-func (iri IRI) Path() string {
+func Path(iri IRI) string {
 	return path.Join(iri.seq...)
 }
 
@@ -119,8 +146,8 @@ func (iri IRI) Path() string {
 URI converts CURIE to fully qualified URL
   wikipedia:CURIE ⟼ http://en.wikipedia.org/wiki/CURIE
 */
-func (iri IRI) URI(prefix string) (*url.URL, error) {
-	if iri.IsEmpty() {
+func URI(prefix string, iri IRI) (*url.URL, error) {
+	if IsEmpty(iri) {
 		return &url.URL{}, nil
 	}
 	seq := iri.seq
@@ -134,44 +161,16 @@ func (iri IRI) URI(prefix string) (*url.URL, error) {
 
 /*
 
-Origin decomposes CURIE and returns its source.
-  a:b/c/d/e ⟼¹ a:       a:b/c/d/e ⟼⁻¹ a:b/c/d
-  a:b/c/d/e ⟼² a:b      a:b/c/d/e ⟼⁻² a:b/c
-  a:b/c/d/e ⟼³ a:b/c    a:b/c/d/e ⟼⁻³ a:b
-    ...
-  a:b/c/d/e ⟼ⁿ a:       a:b/c/d/e ⟼⁻ⁿ a:
-*/
-func (iri IRI) Origin(rank ...int) IRI {
-	r := 1
-	if len(rank) > 0 {
-		r = rank[0]
-	}
+Parent decomposes CURIE and return its parent CURIE.
+It return immediate parent compact URI if rank is not defined.
 
-	if r < 0 {
-		r = len(iri.seq) + r
-	}
-
-	switch {
-	case r < 0:
-		return IRI{seq: []string{}}
-	case iri.Rank() <= r:
-		return IRI{seq: append([]string{}, iri.seq...)}
-	default:
-		return IRI{seq: append([]string{}, iri.seq[:r]...)}
-	}
-}
-
-/*
-
-Parent decomposes CURIE and return its parent CURIE. It return immediate parent
-compact URI by default.
   a:b/c/d/e ⟼¹ a:b/c/d  a:b/c/d/e ⟼⁻¹ a:
   a:b/c/d/e ⟼² a:b/c    a:b/c/d/e ⟼⁻² a:b
   a:b/c/d/e ⟼³ a:b      a:b/c/d/e ⟼⁻³ a:b/c
   ...
   a:b/c/d/e ⟼ⁿ a:       a:b/c/d/e ⟼⁻ⁿ a:b/c/d/e
 */
-func (iri IRI) Parent(rank ...int) IRI {
+func Parent(iri IRI, rank ...int) IRI {
 	r := 1
 	if len(rank) > 0 {
 		r = rank[0]
@@ -196,15 +195,15 @@ func (iri IRI) Parent(rank ...int) IRI {
 
 /*
 
-Prefix decomposes CURIE and return its prefix CURIE (parent) as string value.
+Prefix decomposes CURIE and return its prefix CURIE as string value.
 */
-func (iri IRI) Prefix(rank ...int) string {
+func Prefix(iri IRI, rank ...int) string {
 	r := 1
 	if len(rank) > 0 {
 		r = rank[0]
 	}
 
-	n := iri.Rank() - r
+	n := Rank(iri) - r
 	if n < 0 {
 		return ""
 	}
@@ -221,7 +220,7 @@ Suffix decomposes CURIE and return its suffix.
   ...
   a:b/c/d/e ⟿ⁿ a:b/c/d/e  a:b/c/d/e ⟿⁻ⁿ e
 */
-func (iri IRI) Suffix(rank ...int) string {
+func Suffix(iri IRI, rank ...int) string {
 	r := 1
 	if len(rank) > 0 {
 		r = rank[0]
@@ -231,7 +230,7 @@ func (iri IRI) Suffix(rank ...int) string {
 		r = len(iri.seq) + r
 	}
 
-	n := iri.Rank() - r
+	n := Rank(iri) - r
 	switch {
 	case n >= len(iri.seq):
 		return ""
@@ -247,7 +246,7 @@ func (iri IRI) Suffix(rank ...int) string {
 Join composes segments into new descendant CURIE.
   a:b × [c, d, e] ⟼ a:b/c/d/e
 */
-func (iri IRI) Join(segments ...string) IRI {
+func Join(iri IRI, segments ...string) IRI {
 	seq := append([]string{}, iri.seq...)
 	for _, x := range segments {
 		seq = append(seq,
@@ -268,21 +267,21 @@ Heir composes two CURIEs into new descendant CURIE.
 	a:b × c/d/e ⟼ a:b/c/d/e
 	a:b × c:d/e ⟼ a:b/c/d/e
 */
-func (iri IRI) Heir(other IRI) IRI {
-	return IRI{seq: append(append([]string{}, iri.seq...), other.Seq()...)}
+func Heir(prefix, suffix IRI) IRI {
+	return IRI{seq: append(append([]string{}, prefix.seq...), suffix.seq...)}
 }
 
 /*
 
 Eq compares two CURIEs, return true if they are equal.
 */
-func (iri IRI) Eq(x IRI) bool {
-	if iri.Rank() != x.Rank() {
+func Eq(a, b IRI) bool {
+	if Rank(a) != Rank(b) {
 		return false
 	}
 
-	seq := x.Seq()
-	for i, v := range iri.seq {
+	seq := b.seq
+	for i, v := range a.seq {
 		if seq[i] != v {
 			return false
 		}
@@ -295,46 +294,19 @@ func (iri IRI) Eq(x IRI) bool {
 
 Lt compares two CURIEs, return true if left element is less than supplied one.
 */
-func (iri IRI) Lt(x IRI) bool {
-	if iri.Rank() != x.Rank() {
-		return iri.Rank() < x.Rank()
+func Lt(a, b IRI) bool {
+	if Rank(a) != Rank(b) {
+		return Rank(a) < Rank(b)
 	}
 
-	seq := x.Seq()
-	for i, v := range iri.seq {
+	seq := b.seq
+	for i, v := range a.seq {
 		if seq[i] != v {
 			return v < seq[i]
 		}
 	}
 
 	return false
-}
-
-/*
-
-MarshalJSON `IRI ⟼ "[prefix:suffix]"`
-*/
-func (iri IRI) MarshalJSON() ([]byte, error) {
-	if iri.Rank() == 0 {
-		return json.Marshal("")
-	}
-
-	return json.Marshal("[" + iri.String() + "]")
-}
-
-/*
-
-UnmarshalJSON `"[prefix:suffix]" ⟼ IRI`
-*/
-func (iri *IRI) UnmarshalJSON(b []byte) error {
-	var path string
-	err := json.Unmarshal(b, &path)
-	if err != nil {
-		return err
-	}
-
-	*iri = New(path)
-	return nil
 }
 
 //------------------------------------------------------------------------------

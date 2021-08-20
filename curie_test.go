@@ -50,7 +50,7 @@ func TestIRI(t *testing.T) {
 
 	for k, v := range test {
 		it.Ok(t).
-			If(k.Seq()).Should().Equal(v)
+			If(curie.Seq(*k)).Should().Equal(v)
 	}
 }
 
@@ -66,7 +66,8 @@ func TestSafeIRI(t *testing.T) {
 	} {
 		it.Ok(t).
 			If(curie.New(k)).Should().Equal(*v).
-			If(v.Safe()).Should().Equal(k)
+			If(v.Safe()).Should().Equal(k).
+			If(curie.Safe(*v)).Should().Equal(k)
 	}
 }
 
@@ -75,12 +76,12 @@ func TestURI(t *testing.T) {
 	curi := curie.New(uri)
 
 	expect, _ := url.Parse(uri)
-	native, err := curi.URI("https:")
+	native, err := curie.URI("https:", curi)
 
 	it.Ok(t).
 		If(curi.String()).Equal(uri).
 		If(curi.Safe()).Equal("[" + uri + "]").
-		If(curi.Seq()).Equal([]string{"https", "", "", "example.com", "a", "b", "c?de=fg&foo=bar"}).
+		If(curie.Seq(curi)).Equal([]string{"https", "", "", "example.com", "a", "b", "c?de=fg&foo=bar"}).
 		//
 		IfNil(err).
 		If(native).Equal(expect)
@@ -107,53 +108,47 @@ func TestIdentity(t *testing.T) {
 	}
 }
 
-func TestThis(t *testing.T) {
-	it.Ok(t).
-		IfNotNil(r5.This()).
-		IfTrue(r5.This().Eq(r5))
-}
+// func TestOrigin(t *testing.T) {
+// 	test := map[*curie.IRI][]curie.IRI{
+// 		&rZ: {rZ, rZ, rZ, rZ, rZ, rZ},
+// 		&r0: {r0, r0, r0, r0, r0, r0},
+// 		// &r1: {rZ, rZ, r1, r1, r1, r1},
+// 		&r2: {r0, r0, r2, r2, r2, r2},
+// 		&r3: {r0, r0, r2, r3, r3, r3},
+// 		&r4: {r0, r0, r2, r3, r4, r4},
+// 		&r5: {r0, r0, r2, r3, r4, r5},
+// 	}
 
-func TestOrigin(t *testing.T) {
-	test := map[*curie.IRI][]curie.IRI{
-		&rZ: {rZ, rZ, rZ, rZ, rZ, rZ},
-		&r0: {r0, r0, r0, r0, r0, r0},
-		// &r1: {rZ, rZ, r1, r1, r1, r1},
-		&r2: {r0, r0, r2, r2, r2, r2},
-		&r3: {r0, r0, r2, r3, r3, r3},
-		&r4: {r0, r0, r2, r3, r4, r4},
-		&r5: {r0, r0, r2, r3, r4, r5},
-	}
+// 	for k, v := range test {
+// 		it.Ok(t).
+// 			If(k.Origin()).Should().Equal(v[0]).
+// 			If(k.Origin(1)).Should().Equal(v[1]).
+// 			If(k.Origin(2)).Should().Equal(v[2]).
+// 			If(k.Origin(3)).Should().Equal(v[3]).
+// 			If(k.Origin(4)).Should().Equal(v[4]).
+// 			If(k.Origin(5)).Should().Equal(v[5])
+// 	}
+// }
 
-	for k, v := range test {
-		it.Ok(t).
-			If(k.Origin()).Should().Equal(v[0]).
-			If(k.Origin(1)).Should().Equal(v[1]).
-			If(k.Origin(2)).Should().Equal(v[2]).
-			If(k.Origin(3)).Should().Equal(v[3]).
-			If(k.Origin(4)).Should().Equal(v[4]).
-			If(k.Origin(5)).Should().Equal(v[5])
-	}
-}
+// func TestOriginNegative(t *testing.T) {
+// 	test := map[*curie.IRI][]curie.IRI{
+// 		&rZ: {rZ, rZ, rZ, rZ, rZ},
+// 		&r0: {rZ, rZ, rZ, rZ, rZ},
+// 		&r2: {r0, rZ, rZ, rZ, rZ},
+// 		&r3: {r2, r0, rZ, rZ, rZ},
+// 		&r4: {r3, r2, r0, rZ, rZ},
+// 		&r5: {r4, r3, r2, r0, rZ},
+// 	}
 
-func TestOriginNegative(t *testing.T) {
-	test := map[*curie.IRI][]curie.IRI{
-		&rZ: {rZ, rZ, rZ, rZ, rZ},
-		&r0: {rZ, rZ, rZ, rZ, rZ},
-		&r2: {r0, rZ, rZ, rZ, rZ},
-		&r3: {r2, r0, rZ, rZ, rZ},
-		&r4: {r3, r2, r0, rZ, rZ},
-		&r5: {r4, r3, r2, r0, rZ},
-	}
-
-	for k, v := range test {
-		it.Ok(t).
-			If(k.Origin(-1)).Should().Equal(v[0]).
-			If(k.Origin(-2)).Should().Equal(v[1]).
-			If(k.Origin(-3)).Should().Equal(v[2]).
-			If(k.Origin(-4)).Should().Equal(v[3]).
-			If(k.Origin(-5)).Should().Equal(v[4])
-	}
-}
+// 	for k, v := range test {
+// 		it.Ok(t).
+// 			If(k.Origin(-1)).Should().Equal(v[0]).
+// 			If(k.Origin(-2)).Should().Equal(v[1]).
+// 			If(k.Origin(-3)).Should().Equal(v[2]).
+// 			If(k.Origin(-4)).Should().Equal(v[3]).
+// 			If(k.Origin(-5)).Should().Equal(v[4])
+// 	}
+// }
 
 func TestPrefix(t *testing.T) {
 	test := map[*curie.IRI][]string{
@@ -168,12 +163,12 @@ func TestPrefix(t *testing.T) {
 
 	for k, v := range test {
 		it.Ok(t).
-			If(k.Prefix()).Should().Equal(v[0]).
-			If(k.Prefix(1)).Should().Equal(v[1]).
-			If(k.Prefix(2)).Should().Equal(v[2]).
-			If(k.Prefix(3)).Should().Equal(v[3]).
-			If(k.Prefix(4)).Should().Equal(v[4]).
-			If(k.Prefix(5)).Should().Equal(v[5])
+			If(curie.Prefix(*k)).Should().Equal(v[0]).
+			If(curie.Prefix(*k, 1)).Should().Equal(v[1]).
+			If(curie.Prefix(*k, 2)).Should().Equal(v[2]).
+			If(curie.Prefix(*k, 3)).Should().Equal(v[3]).
+			If(curie.Prefix(*k, 4)).Should().Equal(v[4]).
+			If(curie.Prefix(*k, 5)).Should().Equal(v[5])
 	}
 }
 
@@ -190,12 +185,12 @@ func TestSuffix(t *testing.T) {
 
 	for k, v := range test {
 		it.Ok(t).
-			If(k.Suffix()).Should().Equal(v[0]).
-			If(k.Suffix(1)).Should().Equal(v[1]).
-			If(k.Suffix(2)).Should().Equal(v[2]).
-			If(k.Suffix(3)).Should().Equal(v[3]).
-			If(k.Suffix(4)).Should().Equal(v[4]).
-			If(k.Suffix(5)).Should().Equal(v[5])
+			If(curie.Suffix(*k)).Should().Equal(v[0]).
+			If(curie.Suffix(*k, 1)).Should().Equal(v[1]).
+			If(curie.Suffix(*k, 2)).Should().Equal(v[2]).
+			If(curie.Suffix(*k, 3)).Should().Equal(v[3]).
+			If(curie.Suffix(*k, 4)).Should().Equal(v[4]).
+			If(curie.Suffix(*k, 5)).Should().Equal(v[5])
 	}
 }
 
@@ -212,12 +207,12 @@ func TestSuffixNegative(t *testing.T) {
 
 	for k, v := range test {
 		it.Ok(t).
-			If(k.Suffix(-1)).Should().Equal(v[0]).
-			If(k.Suffix(-2)).Should().Equal(v[1]).
-			If(k.Suffix(-3)).Should().Equal(v[2]).
-			If(k.Suffix(-4)).Should().Equal(v[3]).
-			If(k.Suffix(-5)).Should().Equal(v[4]).
-			If(k.Suffix(-6)).Should().Equal(v[4])
+			If(curie.Suffix(*k, -1)).Should().Equal(v[0]).
+			If(curie.Suffix(*k, -2)).Should().Equal(v[1]).
+			If(curie.Suffix(*k, -3)).Should().Equal(v[2]).
+			If(curie.Suffix(*k, -4)).Should().Equal(v[3]).
+			If(curie.Suffix(*k, -5)).Should().Equal(v[4]).
+			If(curie.Suffix(*k, -6)).Should().Equal(v[4])
 	}
 }
 
@@ -234,12 +229,12 @@ func TestParent(t *testing.T) {
 
 	for k, v := range test {
 		it.Ok(t).
-			If(k.Parent()).Should().Equal(v[0]).
-			If(k.Parent(1)).Should().Equal(v[1]).
-			If(k.Parent(2)).Should().Equal(v[2]).
-			If(k.Parent(3)).Should().Equal(v[3]).
-			If(k.Parent(4)).Should().Equal(v[4]).
-			If(k.Parent(5)).Should().Equal(v[5])
+			If(curie.Parent(*k)).Should().Equal(v[0]).
+			If(curie.Parent(*k, 1)).Should().Equal(v[1]).
+			If(curie.Parent(*k, 2)).Should().Equal(v[2]).
+			If(curie.Parent(*k, 3)).Should().Equal(v[3]).
+			If(curie.Parent(*k, 4)).Should().Equal(v[4]).
+			If(curie.Parent(*k, 5)).Should().Equal(v[5])
 	}
 }
 
@@ -256,45 +251,45 @@ func TestParentNegative(t *testing.T) {
 
 	for k, v := range test {
 		it.Ok(t).
-			If(k.Parent(-1)).Should().Equal(v[0]).
-			If(k.Parent(-2)).Should().Equal(v[1]).
-			If(k.Parent(-3)).Should().Equal(v[2]).
-			If(k.Parent(-4)).Should().Equal(v[3]).
-			If(k.Parent(-5)).Should().Equal(v[4]).
-			If(k.Parent(-6)).Should().Equal(v[4])
+			If(curie.Parent(*k, -1)).Should().Equal(v[0]).
+			If(curie.Parent(*k, -2)).Should().Equal(v[1]).
+			If(curie.Parent(*k, -3)).Should().Equal(v[2]).
+			If(curie.Parent(*k, -4)).Should().Equal(v[3]).
+			If(curie.Parent(*k, -5)).Should().Equal(v[4]).
+			If(curie.Parent(*k, -6)).Should().Equal(v[4])
 
 	}
 }
 
 func TestJoin(t *testing.T) {
 	it.Ok(t).
-		If(rZ.Join("a")).Should().Equal(r0).
-		If(r0.Join("b")).Should().Equal(r2).
-		If(r2.Join("c")).Should().Equal(r3).
-		If(r3.Join("d")).Should().Equal(r4).
-		If(r4.Join("e")).Should().Equal(r5)
+		If(curie.Join(rZ, "a")).Should().Equal(r0).
+		If(curie.Join(r0, "b")).Should().Equal(r2).
+		If(curie.Join(r2, "c")).Should().Equal(r3).
+		If(curie.Join(r3, "d")).Should().Equal(r4).
+		If(curie.Join(r4, "e")).Should().Equal(r5)
 }
 
 func TestJoinRanked(t *testing.T) {
 	it.Ok(t).
-		If(rZ.Join("a/b/c/d/e")).Should().Equal(r5).
-		If(r0.Join("b/c/d/e")).Should().Equal(r5).
-		If(r2.Join("c/d/e")).Should().Equal(r5).
-		If(r3.Join("d/e")).Should().Equal(r5).
-		If(r4.Join("e")).Should().Equal(r5).
-		If(rZ.Join("a:b/c/d/e")).Should().Equal(r5).
-		If(r0.Join("b:c/d/e")).Should().Equal(r5).
-		If(r2.Join("c:d/e")).Should().Equal(r5).
-		If(r3.Join("d:e")).Should().Equal(r5).
-		If(r4.Join("e:")).Should().Equal(r5)
+		If(curie.Join(rZ, "a/b/c/d/e")).Should().Equal(r5).
+		If(curie.Join(r0, "b/c/d/e")).Should().Equal(r5).
+		If(curie.Join(r2, "c/d/e")).Should().Equal(r5).
+		If(curie.Join(r3, "d/e")).Should().Equal(r5).
+		If(curie.Join(r4, "e")).Should().Equal(r5).
+		If(curie.Join(rZ, "a:b/c/d/e")).Should().Equal(r5).
+		If(curie.Join(r0, "b:c/d/e")).Should().Equal(r5).
+		If(curie.Join(r2, "c:d/e")).Should().Equal(r5).
+		If(curie.Join(r3, "d:e")).Should().Equal(r5).
+		If(curie.Join(r4, "e:")).Should().Equal(r5)
 }
 
 func TestJoinImmutable(t *testing.T) {
-	rN := r3.Parent().Join("t")
+	rN := curie.Join(curie.Parent(r3), "t")
 
 	it.Ok(t).
-		If(r3.Path()).Should().Equal("a/b/c").
-		If(rN.Path()).Should().Equal("a/b/t")
+		If(curie.Path(r3)).Should().Equal("a/b/c").
+		If(curie.Path(rN)).Should().Equal("a/b/t")
 }
 
 func TestHeir(t *testing.T) {
@@ -308,16 +303,16 @@ func TestHeir(t *testing.T) {
 		&r5: {r5, curie.New("a:b/c/d/e/a/b/c/d/e")},
 	} {
 		it.Ok(t).
-			If(k.Heir(v[0])).Should().Equal(v[1])
+			If(curie.Heir(*k, v[0])).Should().Equal(v[1])
 	}
 }
 
 func TestHeirImmutable(t *testing.T) {
-	rN := r3.Parent().Heir(curie.New("t"))
+	rN := curie.Heir(curie.Parent(r3), curie.New("t"))
 
 	it.Ok(t).
-		If(r3.Path()).Should().Equal("a/b/c").
-		If(rN.Path()).Should().Equal("a/b/t")
+		If(curie.Path(r3)).Should().Equal("a/b/c").
+		If(curie.Path(rN)).Should().Equal("a/b/t")
 }
 
 func TestCURIE2URI(t *testing.T) {
@@ -331,7 +326,7 @@ func TestCURIE2URI(t *testing.T) {
 	} {
 		curi := curie.New(compact)
 		expect, _ := url.Parse(v[1])
-		uri, err := curi.URI(v[0])
+		uri, err := curie.URI(v[0], curi)
 
 		it.Ok(t).
 			If(err).Should().Equal(nil).
@@ -352,7 +347,7 @@ func TestPath(t *testing.T) {
 
 	for k, v := range test {
 		it.Ok(t).
-			If(k.Path()).Should().Equal(v)
+			If(curie.Path(*k)).Should().Equal(v)
 	}
 }
 
@@ -361,8 +356,8 @@ func TestEq(t *testing.T) {
 
 	for _, v := range test {
 		it.Ok(t).
-			If(v.Eq(v)).Should().Equal(true).
-			If(v.Eq(w0)).Should().Equal(false)
+			If(curie.Eq(v, v)).Should().Equal(true).
+			If(curie.Eq(v, w0)).Should().Equal(false)
 	}
 }
 
@@ -372,8 +367,8 @@ func TestNotEq(t *testing.T) {
 
 	for _, v := range test {
 		it.Ok(t).
-			If(v.Eq(r6)).Should().Equal(false).
-			If(v.Eq(v.Parent().Join("t"))).Should().Equal(false)
+			If(curie.Eq(v, r6)).Should().Equal(false).
+			If(curie.Eq(v, curie.Join(curie.Parent(v), "t"))).Should().Equal(false)
 	}
 }
 
@@ -388,7 +383,7 @@ func TestLt(t *testing.T) {
 		"a:x/x/a": "a:x/x/x/a",
 	} {
 		it.Ok(t).
-			If(curie.New(a).Lt(curie.New(b))).Should().Equal(true)
+			If(curie.Lt(curie.New(a), curie.New(b))).Should().Equal(true)
 	}
 }
 
@@ -421,16 +416,16 @@ func TestJSON(t *testing.T) {
 }
 
 func TestTypeSafe(t *testing.T) {
-	type A struct{ curie.IRI }
-	type B struct{ curie.IRI }
-	type C struct{ curie.IRI }
+	type A curie.IRI
+	type B curie.IRI
+	type C curie.IRI
 
-	a := A{curie.New("a:")}
-	b := B{curie.New("a:b")}
-	c := C{b.IRI.Join("c")}
+	a := A(curie.New("a:"))
+	b := B(curie.New("a:b"))
+	c := C(curie.Join(curie.IRI(b), "c"))
 
 	it.Ok(t).
-		If(a.IRI).Should().Equal(r0).
-		If(b.IRI).Should().Equal(r2).
-		If(c.IRI).Should().Equal(r3)
+		If(curie.IRI(a)).Should().Equal(r0).
+		If(curie.IRI(b)).Should().Equal(r2).
+		If(curie.IRI(c)).Should().Equal(r3)
 }
