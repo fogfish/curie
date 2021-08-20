@@ -391,3 +391,17 @@ func TestTypeSafe(t *testing.T) {
 		If(curie.IRI(b)).Should().Equal(r2).
 		If(curie.IRI(c)).Should().Equal(r3)
 }
+
+func TestSplit(t *testing.T) {
+	rN := curie.Split(r5, 2)
+
+	it.Ok(t).
+		If(curie.Prefix(rN)).Equal("a:b/c").
+		If(curie.Suffix(rN)).Equal("d/e")
+
+	rN = curie.Split(r5, -2)
+
+	it.Ok(t).
+		If(curie.Prefix(rN)).Equal("a:b").
+		If(curie.Suffix(rN)).Equal("c/d/e")
+}

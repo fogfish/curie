@@ -37,7 +37,8 @@ IRI is compact URI, defined as superset of XML QNames.
   reference   :=   irelative-ref (as defined in IRI)
 */
 type IRI struct {
-	seq []string
+	defRank int
+	seq     []string
 }
 
 /*
@@ -95,7 +96,19 @@ func New(iri string, args ...interface{}) IRI {
 	}
 
 	return IRI{
-		seq: split(strings.Trim(val, "[]")),
+		defRank: 1,
+		seq:     split(strings.Trim(val, "[]")),
+	}
+}
+
+/*
+
+Split defines a default rank for Parent, Prefix and Suffix splitters
+*/
+func Split(iri IRI, at int) IRI {
+	return IRI{
+		defRank: at,
+		seq:     append([]string{}, iri.seq...),
 	}
 }
 
@@ -171,7 +184,7 @@ It return immediate parent compact URI if rank is not defined.
   a:b/c/d/e ⟼ⁿ a:       a:b/c/d/e ⟼⁻ⁿ a:b/c/d/e
 */
 func Parent(iri IRI, rank ...int) IRI {
-	r := 1
+	r := iri.defRank
 	if len(rank) > 0 {
 		r = rank[0]
 	}
@@ -183,13 +196,13 @@ func Parent(iri IRI, rank ...int) IRI {
 	n := len(iri.seq) - r
 	switch {
 	case n < 0:
-		return IRI{seq: []string{}}
+		return IRI{defRank: 1, seq: []string{}}
 	case n > len(iri.seq):
-		return IRI{seq: append([]string{}, iri.seq...)}
+		return IRI{defRank: 1, seq: append([]string{}, iri.seq...)}
 	case n == 1 && iri.seq[0] == "":
-		return IRI{seq: []string{}}
+		return IRI{defRank: 1, seq: []string{}}
 	default:
-		return IRI{seq: append([]string{}, iri.seq[:n]...)}
+		return IRI{defRank: 1, seq: append([]string{}, iri.seq[:n]...)}
 	}
 }
 
@@ -198,17 +211,26 @@ func Parent(iri IRI, rank ...int) IRI {
 Prefix decomposes CURIE and return its prefix CURIE as string value.
 */
 func Prefix(iri IRI, rank ...int) string {
-	r := 1
+	r := iri.defRank
 	if len(rank) > 0 {
 		r = rank[0]
 	}
 
-	n := Rank(iri) - r
-	if n < 0 {
-		return ""
+	if r < 0 {
+		r = len(iri.seq) + r
 	}
 
-	return join(iri.seq[:n])
+	n := len(iri.seq) - r
+	switch {
+	case n < 0:
+		return ""
+	case n > len(iri.seq):
+		return join(iri.seq)
+	case n == 1 && iri.seq[0] == "":
+		return ""
+	default:
+		return join(iri.seq[:n])
+	}
 }
 
 /*
@@ -221,7 +243,7 @@ Suffix decomposes CURIE and return its suffix.
   a:b/c/d/e ⟿ⁿ a:b/c/d/e  a:b/c/d/e ⟿⁻ⁿ e
 */
 func Suffix(iri IRI, rank ...int) string {
-	r := 1
+	r := iri.defRank
 	if len(rank) > 0 {
 		r = rank[0]
 	}
@@ -258,7 +280,7 @@ func Join(iri IRI, segments ...string) IRI {
 		)
 	}
 
-	return IRI{seq: seq}
+	return IRI{defRank: 1, seq: seq}
 }
 
 /*
@@ -268,7 +290,10 @@ Heir composes two CURIEs into new descendant CURIE.
 	a:b × c:d/e ⟼ a:b/c/d/e
 */
 func Heir(prefix, suffix IRI) IRI {
-	return IRI{seq: append(append([]string{}, prefix.seq...), suffix.seq...)}
+	return IRI{
+		defRank: 1,
+		seq:     append(append([]string{}, prefix.seq...), suffix.seq...),
+	}
 }
 
 /*
@@ -306,7 +331,6 @@ func Lt(a, b IRI) bool {
 		}
 	}
 
-	fmt.Println("====")
 	return false
 }
 
