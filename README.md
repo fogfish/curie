@@ -30,7 +30,7 @@ compact := curie.New("wikipedia:CURIE")
 //
 // expands compact URI to absolute one
 //   ⟿ http://en.wikipedia.org/wiki/CURIE
-url, err := compact.URI("http://en.wikipedia.org/wiki/")
+url, err := curie.URI("http://en.wikipedia.org/wiki/", compact)
 ```
 
 The type specification is available at [go doc](https://pkg.go.dev/github.com/fogfish/curie).
@@ -61,17 +61,17 @@ a := curie.New(/* ... */)
 b := curie.New(/* ... */)
 
 // rank: |CURIE| ⟼ Int
-a.Rank()
+curie.Rank(a)
 
 // binary compose: CURIE × CURIE ⟼ CURIE
-c := a.Heir(b)
+c := curie.Heir(a, b)
 
 // unary decompose: CURIE ⟼ CURIE
-a == c.Parent(b.Rank())
+a = curie.Parent(c, curie.Rank(b))
 
 // binary ordering: CURIE ≼ CURIE ⟼ bool 
-a.Eq(b)
-a.Lt(b)
+curie.Eq(a, b)
+curie.Lt(a, b)
 ```
 
 ### URI compatibility
