@@ -1,4 +1,4 @@
-module github.com/fogfish/curie/v2
+module github.com/fogfish/curie
 
 go 1.17
 

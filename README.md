@@ -21,7 +21,7 @@ Linked-Data are used widely by Semantic Web to publish structured data so that i
 The latest version of the library is available at `main` branch of this repository. All development, including new features and bug fixes, take place on the `main` branch using forking and pull requests as described in contribution guidelines.
 
 ```go
-import "github.com/fogfish/curie/v2"
+import "github.com/fogfish/curie"
 
 //
 // creates compacts URI to wiki article about CURIE data type
