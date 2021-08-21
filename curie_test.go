@@ -13,7 +13,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/fogfish/curie/v2"
+	"github.com/fogfish/curie"
 	"github.com/fogfish/it"
 )
 
