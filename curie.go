@@ -240,7 +240,7 @@ such as Parent, Prefix Suffix. Every new IRI has suffix rank 1
 func Split(iri IRI, rankSuffix int) IRI {
 	seq := append([]string{}, iri.seq...)
 
-	if len(iri.seq) <= 2 {
+	if len(iri.seq) < 3 {
 		return IRI{rankSuffix: 0, seq: seq}
 	}
 
