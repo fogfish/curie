@@ -32,13 +32,17 @@ import (
 
 IRI is compact URI, defined as superset of XML QNames.
   safe_curie  :=   '[' curie ']'
-  curie       :=   [ [ prefix ] ':' ] reference
-  prefix      :=   NCName
-  reference   :=   irelative-ref (as defined in IRI)
+  curie       :=   [ [ scheme ] ':' ] reference
+  scheme      :=   NCName
+  reference   :=   prefix [ / suffix ]
+  prefix      :=   irelative-ref (as defined in IRI)
+  suffix      :=   irelative-ref (as defined in IRI)
 */
 type IRI struct {
-	defRank int
-	seq     []string
+	// number of suffix segments
+	rankSuffix int
+	// sequence of IRI segments
+	seq []string
 }
 
 /*
@@ -86,6 +90,20 @@ func (iri *IRI) UnmarshalJSON(b []byte) error {
 
 /*
 
+String is safe representation of IRI
+*/
+type String string
+
+/*
+
+IRI convers Safe CURIE to IRI type
+*/
+func (s String) IRI() IRI {
+	return New(string(s))
+}
+
+/*
+
 New transform category of strings to IRI.
 */
 func New(iri string, args ...interface{}) IRI {
@@ -95,21 +113,13 @@ func New(iri string, args ...interface{}) IRI {
 		val = fmt.Sprintf(iri, args...)
 	}
 
-	return IRI{
-		defRank: 1,
-		seq:     split(strings.Trim(val, "[]")),
+	rankSuffix := 1
+	seq := split(strings.Trim(val, "[]"))
+	if len(seq) < 3 {
+		rankSuffix = 0
 	}
-}
 
-/*
-
-Split defines a default rank for Parent, Prefix and Suffix splitters
-*/
-func Split(iri IRI, at int) IRI {
-	return IRI{
-		defRank: at,
-		seq:     append([]string{}, iri.seq...),
-	}
+	return IRI{rankSuffix: rankSuffix, seq: seq}
 }
 
 /*
@@ -142,13 +152,16 @@ func Seq(iri IRI) []string {
 
 Safe transforms CURIE to safe string
 */
-func Safe(iri IRI) string {
-	return "[" + iri.String() + "]"
+func Safe(iri IRI) *String {
+	val := String("[" + iri.String() + "]")
+	return &val
 }
 
 /*
 
 Path converts CURIE to relative file system path.
+
+  a:b/c/d/e ⟼ a/b/c/d/e
 */
 func Path(iri IRI) string {
 	return path.Join(iri.seq...)
@@ -170,130 +183,6 @@ func URI(prefix string, iri IRI) (*url.URL, error) {
 	}
 
 	return url.Parse(prefix + strings.Join(seq[1:], "/"))
-}
-
-/*
-
-Parent decomposes CURIE and return its parent CURIE.
-It return immediate parent compact URI if rank is not defined.
-
-  a:b/c/d/e ⟼¹ a:b/c/d  a:b/c/d/e ⟼⁻¹ a:
-  a:b/c/d/e ⟼² a:b/c    a:b/c/d/e ⟼⁻² a:b
-  a:b/c/d/e ⟼³ a:b      a:b/c/d/e ⟼⁻³ a:b/c
-  ...
-  a:b/c/d/e ⟼ⁿ a:       a:b/c/d/e ⟼⁻ⁿ a:b/c/d/e
-*/
-func Parent(iri IRI, rank ...int) IRI {
-	r := iri.defRank
-	if len(rank) > 0 {
-		r = rank[0]
-	}
-
-	if r < 0 {
-		r = len(iri.seq) + r
-	}
-
-	n := len(iri.seq) - r
-	switch {
-	case n < 0:
-		return IRI{defRank: 1, seq: []string{}}
-	case n > len(iri.seq):
-		return IRI{defRank: 1, seq: append([]string{}, iri.seq...)}
-	case n == 1 && iri.seq[0] == "":
-		return IRI{defRank: 1, seq: []string{}}
-	default:
-		return IRI{defRank: 1, seq: append([]string{}, iri.seq[:n]...)}
-	}
-}
-
-/*
-
-Prefix decomposes CURIE and return its prefix CURIE as string value.
-*/
-func Prefix(iri IRI, rank ...int) string {
-	r := iri.defRank
-	if len(rank) > 0 {
-		r = rank[0]
-	}
-
-	if r < 0 {
-		r = len(iri.seq) + r
-	}
-
-	n := len(iri.seq) - r
-	switch {
-	case n < 0:
-		return ""
-	case n > len(iri.seq):
-		return join(iri.seq)
-	case n == 1 && iri.seq[0] == "":
-		return ""
-	default:
-		return join(iri.seq[:n])
-	}
-}
-
-/*
-
-Suffix decomposes CURIE and return its suffix.
-  a:b/c/d/e ⟿¹ e          a:b/c/d/e ⟿⁻¹ b/c/d/e
-  a:b/c/d/e ⟿² d/e        a:b/c/d/e ⟿⁻² c/d/e
-  a:b/c/d/e ⟿³ c/d/e      a:b/c/d/e ⟿⁻³ d/e
-  ...
-  a:b/c/d/e ⟿ⁿ a:b/c/d/e  a:b/c/d/e ⟿⁻ⁿ e
-*/
-func Suffix(iri IRI, rank ...int) string {
-	r := iri.defRank
-	if len(rank) > 0 {
-		r = rank[0]
-	}
-
-	if r < 0 {
-		r = len(iri.seq) + r
-	}
-
-	n := Rank(iri) - r
-	switch {
-	case n >= len(iri.seq):
-		return ""
-	case n > 0:
-		return strings.Join(iri.seq[n:len(iri.seq)], "/")
-	default:
-		return join(iri.seq)
-	}
-}
-
-/*
-
-Join composes segments into new descendant CURIE.
-  a:b × [c, d, e] ⟼ a:b/c/d/e
-*/
-func Join(iri IRI, segments ...string) IRI {
-	seq := append([]string{}, iri.seq...)
-	for _, x := range segments {
-		seq = append(seq,
-			strings.FieldsFunc(x,
-				func(x rune) bool {
-					return x == '/' || x == ':'
-				},
-			)...,
-		)
-	}
-
-	return IRI{defRank: 1, seq: seq}
-}
-
-/*
-
-Heir composes two CURIEs into new descendant CURIE.
-	a:b × c/d/e ⟼ a:b/c/d/e
-	a:b × c:d/e ⟼ a:b/c/d/e
-*/
-func Heir(prefix, suffix IRI) IRI {
-	return IRI{
-		defRank: 1,
-		seq:     append(append([]string{}, prefix.seq...), suffix.seq...),
-	}
 }
 
 /*
@@ -332,6 +221,123 @@ func Lt(a, b IRI) bool {
 	}
 
 	return false
+}
+
+/*
+
+Split IRI defining a new suffix rank, defining behavior of splitters
+such as Parent, Prefix Suffix. Every new IRI has suffix rank 1
+
+  a:b/c/d/e ⟼⁰   a:b/c/d/e |
+  a:b/c/d/e ⟼¹   a:b/c/d | e
+  a:b/c/d/e ⟼²   a:b/c | d/e
+  a:b/c/d/e ⟼³   a:b | c/d/e
+  ...
+  a:b/c/d/e ⟼ⁿ⁻² a:b | c/d/e
+  a:b/c/d/e ⟼ⁿ⁻¹ a:b | c/d/e
+  a:b/c/d/e ⟼ⁿ   a:b | c/d/e
+*/
+func Split(iri IRI, rankSuffix int) IRI {
+	seq := append([]string{}, iri.seq...)
+
+	if len(iri.seq) < 3 {
+		return IRI{rankSuffix: 0, seq: seq}
+	}
+
+	r := rankSuffix
+	if r > len(iri.seq)-2 {
+		r = len(iri.seq) - 2
+	}
+
+	return IRI{rankSuffix: r, seq: seq}
+}
+
+/*
+
+Scheme ...
+*/
+func Scheme(iri IRI) string {
+	if len(iri.seq) == 0 {
+		return ""
+	}
+	return iri.seq[0]
+}
+
+/*
+
+Parent decomposes CURIE and return its parent CURIE.
+It return immediate parent compact URI if rank is not defined.
+*/
+func Parent(iri IRI) IRI {
+	seq := iri.seq[:len(iri.seq)-iri.rankSuffix]
+	rankSuffix := 1
+	if len(seq) < 3 {
+		rankSuffix = 0
+	}
+
+	return IRI{rankSuffix: rankSuffix, seq: append([]string{}, seq...)}
+}
+
+/*
+
+Prefix decomposes CURIE and return its prefix CURIE as string value.
+*/
+func Prefix(iri IRI) string {
+	return join(iri.seq[:len(iri.seq)-iri.rankSuffix])
+}
+
+/*
+
+Suffix decomposes CURIE and return its suffix.
+*/
+func Suffix(iri IRI) string {
+	if iri.rankSuffix == 0 {
+		return ""
+	}
+
+	return strings.Join(iri.seq[len(iri.seq)-iri.rankSuffix:], "/")
+}
+
+/*
+
+Join composes segments into new descendant CURIE.
+  a:b × [c, d, e] ⟼ a:b/c/d/e
+*/
+func Join(iri IRI, segments ...string) IRI {
+	seq := append([]string{}, iri.seq...)
+	for _, x := range segments {
+		seq = append(seq,
+			strings.FieldsFunc(x,
+				func(x rune) bool {
+					return x == '/' || x == ':'
+				},
+			)...,
+		)
+	}
+
+	rankSuffix := 1
+	if len(seq) < 3 {
+		rankSuffix = 0
+	}
+
+	return IRI{rankSuffix: rankSuffix, seq: seq}
+}
+
+/*
+
+Heir composes two CURIEs into new descendant CURIE.
+	a:b × c/d/e ⟼ a:b/c/d/e
+	a:b × c:d/e ⟼ a:b/c/d/e
+*/
+func Heir(prefix, suffix IRI) IRI {
+	seq := append(append([]string{}, prefix.seq...), suffix.seq...)
+
+	rankSuffix := 1
+	if len(seq) < 3 {
+		rankSuffix = 0
+	}
+
+	return IRI{rankSuffix: rankSuffix, seq: seq}
 }
 
 //------------------------------------------------------------------------------
