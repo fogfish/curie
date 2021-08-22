@@ -232,9 +232,9 @@ such as Parent, Prefix Suffix. Every new IRI has suffix rank 1
   a:b/c/d/e ⟼¹   a:b/c/d | e
   a:b/c/d/e ⟼²   a:b/c | d/e
   a:b/c/d/e ⟼³   a:b | c/d/e
-	...
-	a:b/c/d/e ⟼ⁿ⁻² a:b | c/d/e
-	a:b/c/d/e ⟼ⁿ⁻¹ a:b | c/d/e
+  ...
+  a:b/c/d/e ⟼ⁿ⁻² a:b | c/d/e
+  a:b/c/d/e ⟼ⁿ⁻¹ a:b | c/d/e
   a:b/c/d/e ⟼ⁿ   a:b | c/d/e
 */
 func Split(iri IRI, rankSuffix int) IRI {
