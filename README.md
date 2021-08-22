@@ -13,7 +13,7 @@ The type `curie` ("Compact URI") defines a generic syntax for expressing URIs by
 
 ## Inspiration 
 
-Linked-Data are used widely by Semantic Web to publish structured data so that it can be interlinked by applications. Internationalized Resource Identifiers (IRIs) are key elements to cross-link data structure and establish references (pointers) to data elements. These IRIs may be written as relative, absolute or compact IRIs. The `curie` type is just a formal definition of **compact IRI** (superset of XML QNames). Another challenge solved by `curie` is a formal mechanism to permit the use of hierarchical extensible name collections and its serialization. All-in-all CURIEs expand to any IRI.
+Linked-Data are used widely by Semantic Web to publish structured data so that it can be interlinked by applications. Internationalized Resource Identifiers (IRIs) are key elements to cross-link data structure and establish global references (pointers) to data elements. These IRIs may be written as relative, absolute or compact IRIs. The `curie` type is just a formal definition of **compact IRI** (superset of XML QNames). Another challenge solved by `curie` is a formal mechanism to permit the use of hierarchical extensible name collections and its serialization. All-in-all CURIEs expand to any IRI.
 
 
 ## Getting started
@@ -42,9 +42,11 @@ Compact URI is superset of XML QNames. It is comprised of two components: a pref
 
 ```
 safe_curie  :=   '[' curie ']'
-curie       :=   [ [ prefix ] ':' ] reference
-prefix      :=   NCName
-reference   :=   irelative-ref (as defined in IRI)
+curie       :=   [ [ scheme ] ':' ] reference
+scheme      :=   NCName
+reference   :=   prefix [ / suffix ]
+prefix      :=   irelative-ref (as defined in IRI)
+suffix      :=   irelative-ref (as defined in IRI)
 ```
 
 
@@ -64,10 +66,14 @@ b := curie.New(/* ... */)
 curie.Rank(a)
 
 // binary compose: CURIE × CURIE ⟼ CURIE
-c := curie.Heir(a, b)
+curie.Heir(a, b)
 
 // unary decompose: CURIE ⟼ CURIE
-a = curie.Parent(c, curie.Rank(b))
+curie.Parent(c)
+
+// unary decompose: CURIE ⟼ string
+curie.Prefix(c)
+curie.Suffix(c)
 
 // binary ordering: CURIE ≼ CURIE ⟼ bool 
 curie.Eq(a, b)
@@ -92,6 +98,34 @@ compact.String()
 url, err := compact.URI("https://example.com/a/b/c")
 ```
 
+### Hierarchy
+
+CURIE type is core type to organize hierarchies. An application declares `A ⟼ B` hierarchical relation using path at suffix.
+
+```go
+root := curie.New("some:a")
+
+// construct 2nd rank curie using one of those functions
+rank2 := curie.New("some:a/b")
+rank2 := curie.Join(root, "b")
+rank2 := curie.Heir(root, curie.New("b"))
+
+//
+// parent and prefix of rank2 node is root
+//  ⟿ some:a
+curie.Parent(rank2)
+curie.Prefix(rank2)
+
+//
+// suffix of rank2 node is 
+//  ⟿ b
+curie.Suffix(rank2)
+
+//
+// and so on
+curie.New("some:a/b/c/e/f")
+```
+
 ### Linked-data
 
 Cross-linking of structured data is an essential part of type safe domain driven design. The library helps developers to model relations between data instances using familiar data type:
@@ -99,15 +133,14 @@ Cross-linking of structured data is an essential part of type safe domain driven
 ```go
 type Person struct {
   ID      curie.IRI
+  Social  *curie.String
   Father  *curie.IRI
   Mother  *curie.IRI
   Friends []curie.IRI
 }
 ```
 
-This example uses CURIE data type. `ID` is only used as primary key, `IRI` is a "pointer" to linked-data.
-
-CURIE type is core type to organize hierarchies. An application declares `A ⟼ B` hierarchical relation using path at suffix. For example, the root is `curie.New("some:a")`, 2nd rank node `curie.New("some:a/b")` and so on `curie.New("some:a/b/c/e/f")`.
+This example uses CURIE data type. `ID` is only used as primary key, `IRI` is a "pointer" to linked-data. `curie.String` is an alternative approach to defined IRI using safe notation.
 
 
 ## How To Contribute

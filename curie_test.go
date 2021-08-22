@@ -52,7 +52,9 @@ func TestIRI(t *testing.T) {
 		it.Ok(t).
 			If(curie.Seq(*k)).Should().Equal(v)
 	}
+}
 
+func TestFormatIRI(t *testing.T) {
 	it.Ok(t).
 		If(curie.New("a:b/c/d/%s", "e").String()).Equal("a:b/c/d/e")
 }
@@ -70,7 +72,8 @@ func TestSafeIRI(t *testing.T) {
 		it.Ok(t).
 			If(curie.New(k)).Should().Equal(*v).
 			If(v.Safe()).Should().Equal(k).
-			If(curie.Safe(*v)).Should().Equal(k)
+			If(curie.Safe(*v)).Should().Equal((*curie.String)(&k)).
+			If(curie.String(k).IRI()).Should().Equal(*v)
 	}
 }
 
@@ -111,114 +114,120 @@ func TestIdentity(t *testing.T) {
 	}
 }
 
-func TestPrefix(t *testing.T) {
-	test := map[*curie.IRI][]string{
-		&rZ: {"", "", "", "", "", ""},
-		&r0: {"", "", "", "", "", ""},
-		&r1: {"", "", "", "", "", ""},
-		&r2: {"a:", "a:", "", "", "", ""},
-		&r3: {"a:b", "a:b", "a:", "", "", ""},
-		&r4: {"a:b/c", "a:b/c", "a:b", "a:", "", ""},
-		&r5: {"a:b/c/d", "a:b/c/d", "a:b/c", "a:b", "a:", ""},
+func TestScheme(t *testing.T) {
+	test := map[*curie.IRI]string{
+		&rZ: "",
+		&r0: "a",
+		&r1: "",
+		&r2: "a",
+		&r3: "a",
+		&r4: "a",
+		&r5: "a",
+
+		&w0: "a+b+c+d",
+		&w1: "",
+		&w2: "a",
+		&w3: "a",
 	}
 
 	for k, v := range test {
 		it.Ok(t).
-			If(curie.Prefix(*k)).Should().Equal(v[0]).
-			If(curie.Prefix(*k, 1)).Should().Equal(v[1]).
-			If(curie.Prefix(*k, 2)).Should().Equal(v[2]).
-			If(curie.Prefix(*k, 3)).Should().Equal(v[3]).
-			If(curie.Prefix(*k, 4)).Should().Equal(v[4]).
-			If(curie.Prefix(*k, 5)).Should().Equal(v[5])
+			If(curie.Scheme(*k)).Should().Equal(v)
 	}
 }
 
-func TestSuffix(t *testing.T) {
+func TestPrefix(t *testing.T) {
+	test := map[*curie.IRI]string{
+		&rZ: "",
+		&r0: "a:",
+		&r1: "b",
+		&r2: "a:b",
+		&r3: "a:b",
+		&r4: "a:b/c",
+		&r5: "a:b/c/d",
+	}
+
+	for k, v := range test {
+		it.Ok(t).
+			If(curie.Prefix(*k)).Should().Equal(v)
+	}
+}
+
+func TestSplitAndPrefix(t *testing.T) {
 	test := map[*curie.IRI][]string{
 		&rZ: {"", "", "", "", "", ""},
 		&r0: {"a:", "a:", "a:", "a:", "a:", "a:"},
 		&r1: {"b", "b", "b", "b", "b", "b"},
-		&r2: {"b", "b", "a:b", "a:b", "a:b", "a:b"},
-		&r3: {"c", "c", "b/c", "a:b/c", "a:b/c", "a:b/c"},
-		&r4: {"d", "d", "c/d", "b/c/d", "a:b/c/d", "a:b/c/d"},
-		&r5: {"e", "e", "d/e", "c/d/e", "b/c/d/e", "a:b/c/d/e"},
+		&r2: {"a:b", "a:b", "a:b", "a:b", "a:b", "a:b"},
+		&r3: {"a:b/c", "a:b", "a:b", "a:b", "a:b", "a:b"},
+		&r4: {"a:b/c/d", "a:b/c", "a:b", "a:b", "a:b", "a:b"},
+		&r5: {"a:b/c/d/e", "a:b/c/d", "a:b/c", "a:b", "a:b", "a:b"},
 	}
 
 	for k, v := range test {
 		it.Ok(t).
-			If(curie.Suffix(*k)).Should().Equal(v[0]).
-			If(curie.Suffix(*k, 1)).Should().Equal(v[1]).
-			If(curie.Suffix(*k, 2)).Should().Equal(v[2]).
-			If(curie.Suffix(*k, 3)).Should().Equal(v[3]).
-			If(curie.Suffix(*k, 4)).Should().Equal(v[4]).
-			If(curie.Suffix(*k, 5)).Should().Equal(v[5])
+			If(curie.Prefix(curie.Split(*k, 0))).Should().Equal(v[0]).
+			If(curie.Prefix(curie.Split(*k, 1))).Should().Equal(v[1]).
+			If(curie.Prefix(curie.Split(*k, 2))).Should().Equal(v[2]).
+			If(curie.Prefix(curie.Split(*k, 3))).Should().Equal(v[3]).
+			If(curie.Prefix(curie.Split(*k, 4))).Should().Equal(v[4]).
+			If(curie.Prefix(curie.Split(*k, 5))).Should().Equal(v[5])
 	}
 }
 
-func TestSuffixNegative(t *testing.T) {
-	test := map[*curie.IRI][]string{
-		&rZ: {"", "", "", "", ""},
-		&r0: {"", "", "", "", ""},
-		&r1: {"b", "", "", "", ""},
-		&r2: {"b", "", "", "", ""},
-		&r3: {"b/c", "c", "", "", ""},
-		&r4: {"b/c/d", "c/d", "d", "", ""},
-		&r5: {"b/c/d/e", "c/d/e", "d/e", "e", ""},
+func TestSuffix(t *testing.T) {
+	test := map[*curie.IRI]string{
+		&rZ: "",
+		&r0: "",
+		&r1: "",
+		&r2: "",
+		&r3: "c",
+		&r4: "d",
+		&r5: "e",
 	}
 
 	for k, v := range test {
 		it.Ok(t).
-			If(curie.Suffix(*k, -1)).Should().Equal(v[0]).
-			If(curie.Suffix(*k, -2)).Should().Equal(v[1]).
-			If(curie.Suffix(*k, -3)).Should().Equal(v[2]).
-			If(curie.Suffix(*k, -4)).Should().Equal(v[3]).
-			If(curie.Suffix(*k, -5)).Should().Equal(v[4]).
-			If(curie.Suffix(*k, -6)).Should().Equal(v[4])
+			If(curie.Suffix(*k)).Should().Equal(v)
+	}
+}
+
+func TestSplitAndSuffix(t *testing.T) {
+	test := map[*curie.IRI][]string{
+		&rZ: {"", "", "", "", "", ""},
+		&r0: {"", "", "", "", "", ""},
+		&r1: {"", "", "", "", "", ""},
+		&r2: {"", "", "", "", "", ""},
+		&r3: {"", "c", "c", "c", "c", "c"},
+		&r4: {"", "d", "c/d", "c/d", "c/d", "c/d"},
+		&r5: {"", "e", "d/e", "c/d/e", "c/d/e", "c/d/e"},
+	}
+
+	for k, v := range test {
+		it.Ok(t).
+			If(curie.Suffix(curie.Split(*k, 0))).Should().Equal(v[0]).
+			If(curie.Suffix(curie.Split(*k, 1))).Should().Equal(v[1]).
+			If(curie.Suffix(curie.Split(*k, 2))).Should().Equal(v[2]).
+			If(curie.Suffix(curie.Split(*k, 3))).Should().Equal(v[3]).
+			If(curie.Suffix(curie.Split(*k, 4))).Should().Equal(v[4]).
+			If(curie.Suffix(curie.Split(*k, 5))).Should().Equal(v[5])
 	}
 }
 
 func TestParent(t *testing.T) {
-	test := map[*curie.IRI][]curie.IRI{
-		&rZ: {rZ, rZ, rZ, rZ, rZ, rZ},
-		&r0: {rZ, rZ, rZ, rZ, rZ, rZ},
-		&r1: {rZ, rZ, rZ, rZ, rZ, rZ},
-		&r2: {r0, r0, rZ, rZ, rZ, rZ},
-		&r3: {r2, r2, r0, rZ, rZ, rZ},
-		&r4: {r3, r3, r2, r0, rZ, rZ},
-		&r5: {r4, r4, r3, r2, r0, rZ},
+	test := map[*curie.IRI]curie.IRI{
+		&rZ: rZ,
+		&r0: r0,
+		&r1: r1,
+		&r2: r2,
+		&r3: r2,
+		&r4: r3,
+		&r5: r4,
 	}
 
 	for k, v := range test {
 		it.Ok(t).
-			If(curie.Parent(*k)).Should().Equal(v[0]).
-			If(curie.Parent(*k, 1)).Should().Equal(v[1]).
-			If(curie.Parent(*k, 2)).Should().Equal(v[2]).
-			If(curie.Parent(*k, 3)).Should().Equal(v[3]).
-			If(curie.Parent(*k, 4)).Should().Equal(v[4]).
-			If(curie.Parent(*k, 5)).Should().Equal(v[5])
-	}
-}
-
-func TestParentNegative(t *testing.T) {
-	test := map[*curie.IRI][]curie.IRI{
-		&rZ: {rZ, rZ, rZ, rZ, rZ},
-		&r0: {r0, r0, r0, r0, r0},
-		&r1: {rZ, r1, r1, r1, r1},
-		&r2: {r0, r2, r2, r2, r2},
-		&r3: {r0, r2, r3, r3, r3},
-		&r4: {r0, r2, r3, r4, r4},
-		&r5: {r0, r2, r3, r4, r5},
-	}
-
-	for k, v := range test {
-		it.Ok(t).
-			If(curie.Parent(*k, -1)).Should().Equal(v[0]).
-			If(curie.Parent(*k, -2)).Should().Equal(v[1]).
-			If(curie.Parent(*k, -3)).Should().Equal(v[2]).
-			If(curie.Parent(*k, -4)).Should().Equal(v[3]).
-			If(curie.Parent(*k, -5)).Should().Equal(v[4]).
-			If(curie.Parent(*k, -6)).Should().Equal(v[4])
-
+			If(curie.Parent(*k)).Should().Equal(v)
 	}
 }
 
@@ -392,16 +401,31 @@ func TestTypeSafe(t *testing.T) {
 		If(curie.IRI(c)).Should().Equal(r3)
 }
 
-func TestSplit(t *testing.T) {
-	rN := curie.Split(r5, 2)
+func TestLinkedData(t *testing.T) {
+	type Struct struct {
+		ID curie.IRI     `json:"id"`
+		LA *curie.String `json:"a,omitempty"`
+		LB *curie.IRI    `json:"b,omitempty"`
+	}
 
-	it.Ok(t).
-		If(curie.Prefix(rN)).Equal("a:b/c").
-		If(curie.Suffix(rN)).Equal("d/e")
+	test := map[*Struct]string{
+		{ID: rZ, LA: curie.Safe(r3), LB: &r3}: "{\"id\":\"\",\"a\":\"[a:b/c]\",\"b\":\"[a:b/c]\"}",
+		{ID: r0, LA: curie.Safe(r3), LB: &r3}: "{\"id\":\"[a:]\",\"a\":\"[a:b/c]\",\"b\":\"[a:b/c]\"}",
+		{ID: r1, LA: curie.Safe(r3), LB: &r3}: "{\"id\":\"[b]\",\"a\":\"[a:b/c]\",\"b\":\"[a:b/c]\"}",
+		{ID: r2, LA: curie.Safe(r3), LB: &r3}: "{\"id\":\"[a:b]\",\"a\":\"[a:b/c]\",\"b\":\"[a:b/c]\"}",
+		{ID: r3, LA: curie.Safe(r3), LB: &r3}: "{\"id\":\"[a:b/c]\",\"a\":\"[a:b/c]\",\"b\":\"[a:b/c]\"}",
+	}
 
-	rN = curie.Split(r5, -2)
+	for eg, expect := range test {
+		in := Struct{}
 
-	it.Ok(t).
-		If(curie.Prefix(rN)).Equal("a:b").
-		If(curie.Suffix(rN)).Equal("c/d/e")
+		bytes, err1 := json.Marshal(eg)
+		err2 := json.Unmarshal(bytes, &in)
+
+		it.Ok(t).
+			If(err1).Should().Equal(nil).
+			If(err2).Should().Equal(nil).
+			If(*eg).Should().Equal(in).
+			If(string(bytes)).Should().Equal(expect)
+	}
 }
