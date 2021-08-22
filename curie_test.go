@@ -264,6 +264,9 @@ func TestJoinImmutable(t *testing.T) {
 
 func TestHeir(t *testing.T) {
 	for k, v := range map[*curie.IRI][]curie.IRI{
+		&rZ: {rZ, curie.New("")},
+		&rZ: {r0, curie.New("a:")},
+		&rZ: {r1, curie.New("b")},
 		&rZ: {r5, curie.New("a:b/c/d/e")},
 		&r0: {r5, curie.New("a:a/b/c/d/e")},
 		&r1: {r5, curie.New("b/a/b/c/d/e")},
