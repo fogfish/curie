@@ -136,6 +136,14 @@ func TestScheme(t *testing.T) {
 	}
 }
 
+func TestReScheme(t *testing.T) {
+	t0 := curie.ReScheme(r5, "t")
+
+	it.Ok(t).
+		If(curie.Scheme(t0)).Equal("t").
+		If(curie.Scheme(r5)).Equal("a")
+}
+
 func TestPrefix(t *testing.T) {
 	test := map[*curie.IRI]string{
 		&rZ: "",
