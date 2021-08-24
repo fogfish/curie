@@ -254,13 +254,31 @@ func Split(iri IRI, rankSuffix int) IRI {
 
 /*
 
-Scheme ...
+Scheme of IRI
 */
 func Scheme(iri IRI) string {
 	if len(iri.seq) == 0 {
 		return ""
 	}
 	return iri.seq[0]
+}
+
+/*
+
+ReScheme IRI to new scheme
+*/
+func ReScheme(iri IRI, scheme string) IRI {
+	if len(iri.seq) == 0 {
+		return IRI{rankSuffix: 0, seq: []string{scheme}}
+	}
+
+	reIRI := IRI{
+		rankSuffix: iri.rankSuffix,
+		seq:        append([]string{}, iri.seq...),
+	}
+	reIRI.seq[0] = scheme
+
+	return reIRI
 }
 
 /*
