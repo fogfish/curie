@@ -10,13 +10,182 @@ package curie_test
 
 import (
 	"encoding/json"
-	"net/url"
+	"fmt"
 	"testing"
 
 	"github.com/fogfish/curie"
 	"github.com/fogfish/it"
 )
 
+const (
+	// schema:prefix#suffix
+	i000 = ""
+	i100 = "a:"
+	i010 = "b"
+	i110 = "a:b"
+	i120 = "a:b/c"
+	i130 = "a:b/c/d"
+
+	i011 = "b#c"
+	i111 = "a:b#c"
+	i112 = "a:b#c/d"
+	i121 = "a:b/c#d"
+	i122 = "a:b/c#d/e"
+	i133 = "a:b/c/d#e/f/g"
+
+	w100 = "a+b+c+d:"
+	w010 = "b+c+d"
+	w110 = "a:b+c+d"
+	w120 = "a:b+c+d/e"
+)
+
+var IRIs = []string{i000, i100, i010, i110, i120, i130, i011, i111, i112, i121, i122, i133}
+
+func TestNew(t *testing.T) {
+	for _, str := range IRIs {
+		t.Run(fmt.Sprintf("(%s)", str), func(t *testing.T) {
+			iri := curie.New(str)
+
+			it.Ok(t).
+				If(iri.String()).Equal(str).
+				If(iri.Safe()).Equal("[" + str + "]").
+				If(curie.String(str).IRI().String()).Equal(str)
+		})
+
+	}
+}
+
+func TestNewSafe(t *testing.T) {
+	for _, str := range IRIs {
+		t.Run(fmt.Sprintf("(%s)", str), func(t *testing.T) {
+			iri := curie.New("[" + str + "]")
+
+			it.Ok(t).
+				If(iri.String()).Equal(str).
+				If(iri.Safe()).Equal("[" + str + "]")
+		})
+
+	}
+}
+
+func TestNewWrong(t *testing.T) {
+	for _, str := range []string{w100, w010, w110, w120} {
+		t.Run(fmt.Sprintf("(%s)", str), func(t *testing.T) {
+			iri := curie.New(str)
+
+			it.Ok(t).
+				If(iri.String()).Equal(str).
+				If(iri.Safe()).Equal("[" + str + "]").
+				If(curie.String(str).IRI().String()).Equal(str)
+		})
+
+	}
+}
+
+func TestJSON(t *testing.T) {
+	type Struct struct {
+		ID curie.IRI `json:"id"`
+	}
+
+	for _, str := range IRIs {
+		t.Run(fmt.Sprintf("(%s)", str), func(t *testing.T) {
+			id := curie.New(str)
+
+			send := Struct{ID: id}
+			var recv Struct
+
+			bytes, err1 := json.Marshal(send)
+			err2 := json.Unmarshal(bytes, &recv)
+
+			safe := id.Safe()
+			if safe == "[]" {
+				safe = ""
+			}
+
+			it.Ok(t).
+				If(err1).Should().Equal(nil).
+				If(err2).Should().Equal(nil).
+				If(recv).Should().Equal(send).
+				If(string(bytes)).Should().Equal("{\"id\":\"" + safe + "\"}")
+		})
+	}
+}
+
+func TestIsEmpty(t *testing.T) {
+	for str, val := range map[string]bool{
+		i000: true,
+		i100: false,
+		i010: false,
+		i110: false,
+		i120: false,
+		i130: false,
+		i011: false,
+		i111: false,
+		i112: false,
+		i121: false,
+		i122: false,
+		i133: false,
+	} {
+		t.Run(fmt.Sprintf("(%s)", str), func(t *testing.T) {
+			iri := curie.New(str)
+
+			it.Ok(t).
+				If(curie.IsEmpty(iri)).Equal(val)
+		})
+	}
+}
+
+func TestRank(t *testing.T) {
+	for str, seq := range map[string]int{
+		i000: 0,
+		i100: 1,
+		i010: 2,
+		i110: 2,
+		i120: 3,
+		i130: 4,
+		i011: 3,
+		i111: 3,
+		i112: 4,
+		i121: 4,
+		i122: 5,
+		i133: 7,
+	} {
+
+		t.Run(fmt.Sprintf("(%s)", str), func(t *testing.T) {
+			iri := curie.New(str)
+
+			it.Ok(t).
+				If(curie.Rank(iri)).Equal(seq)
+		})
+	}
+}
+
+func TestSeq(t *testing.T) {
+	for str, seq := range map[string][]string{
+		i000: {},
+		i100: {"a"},
+		i010: {"", "b"},
+		i110: {"a", "b"},
+		i120: {"a", "b", "c"},
+		i130: {"a", "b", "c", "d"},
+		i011: {"", "b", "c"},
+		i111: {"a", "b", "c"},
+		i112: {"a", "b", "c", "d"},
+		i121: {"a", "b", "c", "d"},
+		i122: {"a", "b", "c", "d", "e"},
+		i133: {"a", "b", "c", "d", "e", "f", "g"},
+	} {
+
+		t.Run(fmt.Sprintf("(%s)", str), func(t *testing.T) {
+			iri := curie.New(str)
+
+			it.Ok(t).
+				If(curie.Seq(iri)).Equal(seq)
+		})
+	}
+}
+
+/*
 var (
 	rZ curie.IRI = curie.New("")
 	r0 curie.IRI = curie.New("a:")
@@ -382,31 +551,6 @@ func TestLt(t *testing.T) {
 }
 
 func TestJSON(t *testing.T) {
-	type Struct struct {
-		ID    curie.IRI `json:"id"`
-		Title string    `json:"title"`
-	}
-
-	test := map[*Struct]string{
-		{ID: rZ, Title: "t"}: "{\"id\":\"\",\"title\":\"t\"}",
-		{ID: r0, Title: "t"}: "{\"id\":\"[a:]\",\"title\":\"t\"}",
-		{ID: r1, Title: "t"}: "{\"id\":\"[b]\",\"title\":\"t\"}",
-		{ID: r2, Title: "t"}: "{\"id\":\"[a:b]\",\"title\":\"t\"}",
-		{ID: r3, Title: "t"}: "{\"id\":\"[a:b/c]\",\"title\":\"t\"}",
-	}
-
-	for eg, expect := range test {
-		in := Struct{}
-
-		bytes, err1 := json.Marshal(eg)
-		err2 := json.Unmarshal(bytes, &in)
-
-		it.Ok(t).
-			If(err1).Should().Equal(nil).
-			If(err2).Should().Equal(nil).
-			If(*eg).Should().Equal(in).
-			If(string(bytes)).Should().Equal(expect)
-	}
 }
 
 func TestTypeSafe(t *testing.T) {
@@ -452,3 +596,4 @@ func TestLinkedData(t *testing.T) {
 			If(string(bytes)).Should().Equal(expect)
 	}
 }
+*/
