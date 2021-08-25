@@ -1,6 +1,6 @@
 # curie
 
-The type `curie` ("Compact URI") defines a generic syntax for expressing URIs by abbreviated literal as defined by the [W3C](https://www.w3.org/TR/2010/NOTE-curie-20101216/). The type supports type safe domain driven design using aspects of hierarchical linked-data.
+The type `curie` ("Compact URI") defines a generic syntax for expressing URIs by abbreviated literal as defined by the [W3C](https://www.w3.org/TR/2010/NOTE-curie-20101216/). This datatype supports type safe identity within domain driven design. 
 
 
 [![Documentation](https://pkg.go.dev/badge/github.com/fogfish/curie)](https://pkg.go.dev/github.com/fogfish/curie)
@@ -13,7 +13,9 @@ The type `curie` ("Compact URI") defines a generic syntax for expressing URIs by
 
 ## Inspiration 
 
-Linked-Data are used widely by Semantic Web to publish structured data so that it can be interlinked by applications. Internationalized Resource Identifiers (IRIs) are key elements to cross-link data structure and establish global references (pointers) to data elements. These IRIs may be written as relative, absolute or compact IRIs. The `curie` type is just a formal definition of **compact IRI** (superset of XML QNames). Another challenge solved by `curie` is a formal mechanism to permit the use of hierarchical extensible name collections and its serialization. All-in-all CURIEs expand to any IRI.
+Linked-Data are used widely by Semantic Web to publish structured data so that it can be interlinked by applications. Internationalized Resource Identifiers (IRIs) are key elements to cross-link data structure and establish global references (pointers) to data elements. These IRIs may be written as relative, absolute or compact IRIs. The `curie` type is just a formal definition of **compact IRI** (superset of XML QNames). 
+
+Another challenge solved by `curie` is a formal mechanism to permit the use of hierarchical extensible name collections and its serialization. All-in-all CURIEs expand to any IRI.
 
 
 ## Getting started
@@ -44,11 +46,13 @@ Compact URI is superset of XML QNames. It is comprised of two components: a pref
 safe_curie  :=   '[' curie ']'
 curie       :=   [ [ scheme ] ':' ] reference
 scheme      :=   NCName
-reference   :=   prefix [ / suffix ]
-prefix      :=   irelative-ref (as defined in IRI)
-suffix      :=   irelative-ref (as defined in IRI)
+reference   :=   irelative-ref (as defined in IRI)
+reference   :=   prefix [ # suffix ]
+prefix      :=   irelative-part
+suffix      :=   ifragment
 ```
 
+Formally, CURIE is a triple: ⟨𝒔𝒉𝒆𝒎𝒆, 𝒑𝒓𝒆𝒇𝒊𝒙, 𝒔𝒖𝒇𝒇𝒊𝒙⟩
 
 ### CURIE "algebra"
 
@@ -100,13 +104,13 @@ url, err := compact.URI("https://example.com/a/b/c")
 
 ### Hierarchy
 
-CURIE type is core type to organize hierarchies. An application declares `A ⟼ B` hierarchical relation using path at suffix.
+CURIE type is core type to organize hierarchies. An application declares `A ⟼ B` hierarchical relation using paths, prefixes and suffixes. 
 
 ```go
 root := curie.New("some:a")
 
 // construct 2nd rank curie using one of those functions
-rank2 := curie.New("some:a/b")
+rank2 := curie.New("some:a#b")
 rank2 := curie.Join(root, "b")
 rank2 := curie.Heir(root, curie.New("b"))
 
@@ -123,7 +127,7 @@ curie.Suffix(rank2)
 
 //
 // and so on
-curie.New("some:a/b/c/e/f")
+curie.New("some:a/b/c#e/f")
 ```
 
 ### Linked-data
