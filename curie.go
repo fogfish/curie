@@ -34,10 +34,10 @@ IRI is compact URI, defined as superset of XML QNames.
   safe_curie  :=   '[' curie ']'
   curie       :=   [ [ scheme ] ':' ] reference
   scheme      :=   NCName
-	reference   :=   irelative-ref (as defined in IRI)
-	reference   :=   prefix [ # suffix ]
-	prefix      :=   irelative-part
-	suffix      :=   ifragment
+  reference   :=   irelative-ref (as defined in IRI)
+  reference   :=   prefix [ # suffix ]
+  prefix      :=   irelative-part
+  suffix      :=   ifragment
 */
 type IRI struct {
 	// number of suffix segments

@@ -537,6 +537,11 @@ func TestHeirWithZero(t *testing.T) {
 		If(curie.Heir(curie.New(i010), curie.New("x:y#z")).String()).Equal("b#x/y/z")
 }
 
+func TestHeirWithZeroSuffix(t *testing.T) {
+	it.Ok(t).
+		If(curie.Heir(curie.New(i111), curie.New("")).String()).Equal("a:b#c")
+}
+
 func TestHeirImmutable(t *testing.T) {
 	r3 := curie.New(i133)
 	rP := curie.Parent(r3)
