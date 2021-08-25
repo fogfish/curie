@@ -386,7 +386,7 @@ func TestPrefixAndParent(t *testing.T) {
 	}
 }
 
-func TestSuffix(t *testing.T) {
+func TestSuffixAndChild(t *testing.T) {
 	for str, val := range map[string]string{
 		i000: "",
 		i100: "",
@@ -405,9 +405,18 @@ func TestSuffix(t *testing.T) {
 			iri := curie.New(str)
 
 			it.Ok(t).
-				If(curie.Suffix(iri)).Equal(val)
+				If(curie.Suffix(iri)).Equal(val).
+				If(curie.Path(curie.Child(iri))).Equal(val)
 		})
 	}
+}
+
+func TestChildScheme(t *testing.T) {
+	it.Ok(t).
+		If(curie.Child(curie.New("")).String()).Equal("").
+		If(curie.Child(curie.New("a:b#c")).String()).Equal("c:").
+		If(curie.Child(curie.New("a:b#c/d")).String()).Equal("c:d").
+		If(curie.Child(curie.New("a:b#c/d/e")).String()).Equal("c:d/e")
 }
 
 func TestSplit(t *testing.T) {
