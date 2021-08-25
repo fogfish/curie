@@ -122,6 +122,18 @@ func TestJSON(t *testing.T) {
 	}
 }
 
+func TestJSONError(t *testing.T) {
+	type Struct struct {
+		ID curie.IRI `json:"id"`
+	}
+	var recv Struct
+
+	err := json.Unmarshal([]byte("{\"id\":100}"), &recv)
+
+	it.Ok(t).
+		IfNotNil(err)
+}
+
 func TestIsEmpty(t *testing.T) {
 	for str, val := range map[string]bool{
 		i000: true,
@@ -308,7 +320,8 @@ func TestLt(t *testing.T) {
 		t.Run(fmt.Sprintf("(%s)", a), func(t *testing.T) {
 			it.Ok(t).
 				If(curie.Lt(curie.New(a), curie.New(b))).Should().Equal(true).
-				If(curie.Lt(curie.New(b), curie.New(a))).Should().Equal(false)
+				If(curie.Lt(curie.New(b), curie.New(a))).Should().Equal(false).
+				If(curie.Lt(curie.New(a), curie.New(a))).Should().Equal(false)
 		})
 	}
 }
