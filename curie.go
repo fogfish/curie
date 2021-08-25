@@ -283,16 +283,6 @@ func NewScheme(iri IRI, scheme string) IRI {
 
 /*
 
-Parent decomposes CURIE and return its parent CURIE.
-It return immediate parent compact URI if rank is not defined.
-*/
-func Parent(iri IRI) IRI {
-	seq := iri.seq[:len(iri.seq)-iri.rankSuffix]
-	return IRI{rankSuffix: 0, seq: append([]string{}, seq...)}
-}
-
-/*
-
 Prefix decomposes CURIE and return its prefix CURIE as string value.
 */
 func Prefix(iri IRI) string {
@@ -309,6 +299,28 @@ func Suffix(iri IRI) string {
 	}
 
 	return strings.Join(iri.seq[len(iri.seq)-iri.rankSuffix:], "/")
+}
+
+/*
+
+Parent decomposes CURIE and return its prefix as CURIE type.
+*/
+func Parent(iri IRI) IRI {
+	seq := iri.seq[:len(iri.seq)-iri.rankSuffix]
+	return IRI{rankSuffix: 0, seq: append([]string{}, seq...)}
+}
+
+/*
+
+Child decomposes CURIE and return its suffix as CURIE type.
+*/
+func Child(iri IRI) IRI {
+	if iri.rankSuffix == 0 {
+		return IRI{rankSuffix: 0, seq: []string{}}
+	}
+
+	seq := iri.seq[len(iri.seq)-iri.rankSuffix:]
+	return IRI{rankSuffix: 0, seq: append([]string{}, seq...)}
 }
 
 /*
