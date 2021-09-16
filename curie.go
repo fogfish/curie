@@ -172,17 +172,32 @@ func Path(iri IRI) string {
 URI converts CURIE to fully qualified URL
   wikipedia:CURIE ⟼ http://en.wikipedia.org/wiki/CURIE
 */
-func URI(prefix string, iri IRI) (*url.URL, error) {
+func URI(prefix string, iri IRI) string {
 	if IsEmpty(iri) {
-		return &url.URL{}, nil
+		return ""
 	}
 	seq := iri.seq
 
 	if seq[0] == "" {
-		return url.Parse(strings.Join(seq[1:], "/"))
+		return strings.Join(seq[1:], "/")
 	}
 
-	return url.Parse(prefix + strings.Join(seq[1:], "/"))
+	return prefix + strings.Join(seq[1:], "/")
+}
+
+/*
+
+URL converts CURIE to fully qualified url.URL type
+  wikipedia:CURIE ⟼ http://en.wikipedia.org/wiki/CURIE
+*/
+func URL(prefix string, iri IRI) (*url.URL, error) {
+	uri := URI(prefix, iri)
+
+	if uri == "" {
+		return &url.URL{}, nil
+	}
+
+	return url.Parse(uri)
 }
 
 /*
