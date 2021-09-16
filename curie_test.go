@@ -230,21 +230,21 @@ func TestPath(t *testing.T) {
 	}
 }
 
-func TestURI(t *testing.T) {
+func TestURL(t *testing.T) {
 	compact := curie.New("wikipedia:CURIE")
-	url, err := curie.URI("http://en.wikipedia.org/wiki/", compact)
+	url, err := curie.URL("http://en.wikipedia.org/wiki/", compact)
 
 	it.Ok(t).
 		IfNil(err).
 		If(url.String()).Equal("http://en.wikipedia.org/wiki/CURIE")
 }
 
-func TestURICompatibility(t *testing.T) {
+func TestURLCompatibility(t *testing.T) {
 	uri := "https://example.com/a/b/c?de=fg&foo=bar"
 	curi := curie.New(uri)
 
 	expect, _ := url.Parse(uri)
-	native, err := curie.URI("https:", curi)
+	native, err := curie.URL("https:", curi)
 
 	it.Ok(t).
 		If(curi.String()).Equal(uri).
@@ -255,7 +255,7 @@ func TestURICompatibility(t *testing.T) {
 		If(native).Equal(expect)
 }
 
-func TestURIConvert(t *testing.T) {
+func TestURLConvert(t *testing.T) {
 	for compact, v := range map[string][]string{
 		"":          {"https://example.com/", ""},
 		"a:":        {"https://example.com/", "https://example.com/"},
@@ -266,7 +266,7 @@ func TestURIConvert(t *testing.T) {
 	} {
 		curi := curie.New(compact)
 		expect, _ := url.Parse(v[1])
-		uri, err := curie.URI(v[0], curi)
+		uri, err := curie.URL(v[0], curi)
 
 		it.Ok(t).
 			If(err).Should().Equal(nil).
