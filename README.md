@@ -32,7 +32,8 @@ compact := curie.New("wikipedia:CURIE")
 //
 // expands compact URI to absolute one
 //   ⟿ http://en.wikipedia.org/wiki/CURIE
-url, err := curie.URI("http://en.wikipedia.org/wiki/", compact)
+prefix := map[string]string{"wiki": "http://en.wikipedia.org/wiki/"}
+url := curie.URI(prefix, compact)
 ```
 
 The type specification is available at [go doc](https://pkg.go.dev/github.com/fogfish/curie).
@@ -44,15 +45,10 @@ Compact URI is superset of XML QNames. It is comprised of two components: a pref
 
 ```
 safe_curie  :=   '[' curie ']'
-curie       :=   [ [ scheme ] ':' ] reference
-scheme      :=   NCName
-reference   :=   irelative-ref (as defined in IRI)
-reference   :=   prefix [ # suffix ]
-prefix      :=   irelative-part
-suffix      :=   ifragment
+curie       :=   [ [ prefix ] ':' ] suffix
+prefix      :=   NCName
+suffix      :=   NCName [ / suffix ]
 ```
-
-Formally, CURIE is a triple: ⟨𝒔𝒉𝒆𝒎𝒆, 𝒑𝒓𝒆𝒇𝒊𝒙, 𝒔𝒖𝒇𝒇𝒊𝒙⟩
 
 ### CURIE "algebra"
 
@@ -69,12 +65,6 @@ b := curie.New(/* ... */)
 // rank: |CURIE| ⟼ Int
 curie.Rank(a)
 
-// binary compose: CURIE × CURIE ⟼ CURIE
-curie.Heir(a, b)
-
-// unary decompose: CURIE ⟼ CURIE
-curie.Parent(c)
-
 // unary decompose: CURIE ⟼ string
 curie.Prefix(c)
 curie.Suffix(c)
@@ -82,6 +72,10 @@ curie.Suffix(c)
 // binary ordering: CURIE ≼ CURIE ⟼ bool 
 curie.Eq(a, b)
 curie.Lt(a, b)
+
+
+// binary compose: CURIE × CURIE ⟼ CURIE
+curie.Join(a, b)
 ```
 
 ### URI compatibility
@@ -110,24 +104,22 @@ CURIE type is core type to organize hierarchies. An application declares `A ⟼ 
 root := curie.New("some:a")
 
 // construct 2nd rank curie using one of those functions
-rank2 := curie.New("some:a#b")
+rank2 := curie.New("some:a/b")
 rank2 := curie.Join(root, "b")
-rank2 := curie.Heir(root, curie.New("b"))
 
 //
 // parent and prefix of rank2 node is root
 //  ⟿ some:a
 curie.Parent(rank2)
-curie.Prefix(rank2)
 
 //
 // suffix of rank2 node is 
 //  ⟿ b
-curie.Suffix(rank2)
+curie.Child(rank2)
 
 //
 // and so on
-curie.New("some:a/b/c#e/f")
+curie.New("some:a/b/c/d/e")
 ```
 
 ### Linked-data
