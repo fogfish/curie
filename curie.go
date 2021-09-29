@@ -99,43 +99,43 @@ func (iri *IRI) UnmarshalJSON(b []byte) error {
 
 ID is a product type of IRIs
 */
-type ID struct{ PKey, SKey IRI }
+// type ID struct{ PKey, SKey IRI }
 
 /*
 
 MarshalJSON `ID ⟼ "[prefix:suffix][prefix:suffix]"`
 */
-func (id ID) MarshalJSON() ([]byte, error) {
-	pkey := id.PKey.Safe()
-	skey := id.SKey.Safe()
+// func (id ID) MarshalJSON() ([]byte, error) {
+// 	pkey := id.PKey.Safe()
+// 	skey := id.SKey.Safe()
 
-	if skey == "" {
-		return json.Marshal(pkey)
-	}
+// 	if skey == "" {
+// 		return json.Marshal(pkey)
+// 	}
 
-	return json.Marshal(pkey + skey)
-}
+// 	return json.Marshal(pkey + skey)
+// }
 
 /*
 
 UnmarshalJSON `"[prefix:suffix][prefix:suffix]" ⟼ ID`
 */
-func (id *ID) UnmarshalJSON(b []byte) error {
-	var val string
-	err := json.Unmarshal(b, &val)
-	if err != nil {
-		return err
-	}
+// func (id *ID) UnmarshalJSON(b []byte) error {
+// 	var val string
+// 	err := json.Unmarshal(b, &val)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	seq := strings.Split(val, "][")
-	id.PKey = New(seq[0])
-	if len(seq) == 1 {
-		return nil
-	}
+// 	seq := strings.Split(val, "][")
+// 	id.PKey = New(seq[0])
+// 	if len(seq) == 1 {
+// 		return nil
+// 	}
 
-	id.SKey = New(seq[1])
-	return nil
-}
+// 	id.SKey = New(seq[1])
+// 	return nil
+// }
 
 //------------------------------------------------------------------------------
 //

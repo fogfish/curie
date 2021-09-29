@@ -305,6 +305,7 @@ func TestLt(t *testing.T) {
 		"b":     "c",
 		"b/c":   "b/d",
 		"b/c/d": "b/c/e",
+		"z:":    "z:x",
 	} {
 		t.Run(fmt.Sprintf("(%s)", a), func(t *testing.T) {
 			it.Ok(t).
@@ -387,10 +388,13 @@ func TestParent(t *testing.T) {
 		If(curie.Parent(curie.New("a:b/c/d"), 2).String()).Equal("a:b").
 		If(curie.Parent(curie.New("a:b/c/d"), 3).String()).Equal("a:").
 		If(curie.Parent(curie.New("a:b/c/d"), 4).String()).Equal("").
+		If(curie.Parent(curie.New("a:b/c/d"), 5).String()).Equal("").
 		If(curie.Parent(curie.New("a:b/c/d"), -1).String()).Equal("a:").
 		If(curie.Parent(curie.New("a:b/c/d"), -2).String()).Equal("a:b").
 		If(curie.Parent(curie.New("a:b/c/d"), -3).String()).Equal("a:b/c").
-		If(curie.Parent(curie.New("a:b/c/d"), -4).String()).Equal("a:b/c/d")
+		If(curie.Parent(curie.New("a:b/c/d"), -4).String()).Equal("a:b/c/d").
+		If(curie.Parent(curie.New("a:b/c/d"), -5).String()).Equal("a:b/c/d").
+		If(curie.Parent(curie.New("b"), 1).String()).Equal("")
 }
 
 func TestChild(t *testing.T) {
@@ -451,6 +455,7 @@ func TestLinkedData(t *testing.T) {
 	}
 }
 
+/*
 func TestID(t *testing.T) {
 	type Struct struct {
 		ID curie.ID `json:"id"`
@@ -479,3 +484,4 @@ func TestID(t *testing.T) {
 			If(string(bytes)).Should().Equal(expect)
 	}
 }
+*/
