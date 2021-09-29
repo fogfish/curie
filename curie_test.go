@@ -454,34 +454,3 @@ func TestLinkedData(t *testing.T) {
 			If(string(bytes)).Should().Equal(expect)
 	}
 }
-
-/*
-func TestID(t *testing.T) {
-	type Struct struct {
-		ID curie.ID `json:"id"`
-	}
-
-	test := map[*Struct]string{
-		{ID: curie.ID{PKey: curie.New("")}}:                              "{\"id\":\"\"}",
-		{ID: curie.ID{PKey: curie.New("a:")}}:                            "{\"id\":\"[a:]\"}",
-		{ID: curie.ID{PKey: curie.New("a:b")}}:                           "{\"id\":\"[a:b]\"}",
-		{ID: curie.ID{PKey: curie.New("a:b/c")}}:                         "{\"id\":\"[a:b/c]\"}",
-		{ID: curie.ID{PKey: curie.New("a:b"), SKey: curie.New("a:")}}:    "{\"id\":\"[a:b][a:]\"}",
-		{ID: curie.ID{PKey: curie.New("a:b"), SKey: curie.New("a:b")}}:   "{\"id\":\"[a:b][a:b]\"}",
-		{ID: curie.ID{PKey: curie.New("a:b"), SKey: curie.New("a:b/c")}}: "{\"id\":\"[a:b][a:b/c]\"}",
-	}
-
-	for eg, expect := range test {
-		in := Struct{}
-
-		bytes, err1 := json.Marshal(eg)
-		err2 := json.Unmarshal(bytes, &in)
-
-		it.Ok(t).
-			If(err1).Should().Equal(nil).
-			If(err2).Should().Equal(nil).
-			If(*eg).Should().Equal(in).
-			If(string(bytes)).Should().Equal(expect)
-	}
-}
-*/
