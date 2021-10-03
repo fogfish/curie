@@ -2,7 +2,7 @@
 
 The type `curie` ("Compact URI") defines a generic syntax for expressing URIs by abbreviated literal as defined by the [W3C](https://www.w3.org/TR/2010/NOTE-curie-20101216/). This datatype supports type safe identity within domain driven design. 
 
-
+[![Version](https://img.shields.io/github/v/tag/fogfish/curie?label=version)](https://github.com/fogfish/curie/releases)
 [![Documentation](https://pkg.go.dev/badge/github.com/fogfish/curie)](https://pkg.go.dev/github.com/fogfish/curie)
 [![Build Status](https://github.com/fogfish/curie/workflows/build/badge.svg)](https://github.com/fogfish/curie/actions/)
 [![Git Hub](https://img.shields.io/github/last-commit/fogfish/curie.svg)](https://github.com/fogfish/curie)
