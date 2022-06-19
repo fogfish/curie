@@ -32,10 +32,10 @@ func TestNew(t *testing.T) {
 			iri := curie.New(str)
 
 			it.Ok(t).
-				If(iri.String()).Equal(str).
-				If(iri.Safe()).Equal("[" + str + "]").
-				If(curie.String(str).IRI().String()).Equal(str).
-				If(*curie.Safe(iri)).Equal(curie.String("[" + str + "]"))
+				If(string(iri)).Equal(str).
+				If(iri.Safe()).Equal("[" + str + "]")
+			// If(curie.String(str).IRI().String()).Equal(str).
+			// If(*curie.Safe(iri)).Equal(curie.String("[" + str + "]"))
 		})
 	}
 }
@@ -54,17 +54,19 @@ func TestNewSafe(t *testing.T) {
 			iri := curie.New("[" + str + "]")
 
 			it.Ok(t).
-				If(iri.String()).Equal(str).
-				If(iri.Safe()).Equal("[" + str + "]").
-				If(curie.String(str).IRI().String()).Equal(str).
-				If(*curie.Safe(iri)).Equal(curie.String("[" + str + "]"))
+				If(string(iri)).Equal(str).
+				If(iri.Safe()).Equal("[" + str + "]")
+			// If(curie.String(str).IRI().String()).Equal(str).
+			// If(*curie.Safe(iri)).Equal(curie.String("[" + str + "]"))
 		})
 	}
 }
 
 func TestNewFormat(t *testing.T) {
+	iri := curie.New("a:b/c/d/%s", "e")
+
 	it.Ok(t).
-		If(curie.New("a:b/c/d/%s", "e").String()).Equal("a:b/c/d/e")
+		If(string(iri)).Equal("a:b/c/d/e")
 }
 
 func TestNewBadFormat(t *testing.T) {
@@ -78,9 +80,9 @@ func TestNewBadFormat(t *testing.T) {
 			iri := curie.New(str)
 
 			it.Ok(t).
-				If(iri.String()).Equal(str).
-				If(iri.Safe()).Equal("[" + str + "]").
-				If(curie.String(str).IRI().String()).Equal(str)
+				If(string(iri)).Equal(str).
+				If(iri.Safe()).Equal("[" + str + "]")
+			// If(curie.String(str).IRI().String()).Equal(str)
 		})
 	}
 }
@@ -151,13 +153,13 @@ func TestIsEmpty(t *testing.T) {
 
 func TestRank(t *testing.T) {
 	for str, seq := range map[string]int{
-		"":      0,
-		"a:":    1,
-		"a:b":   2,
-		"a:b/c": 3,
-		"b":     2,
-		"b/c":   3,
-		"b/c/d": 4,
+		"":      curie.EMPTY,
+		"a:":    curie.PREFIX,
+		"a:b":   curie.REFERENCE,
+		"a:b/c": curie.REFERENCE,
+		"b":     curie.REFERENCE,
+		"b/c":   curie.REFERENCE,
+		"b/c/d": curie.REFERENCE,
 	} {
 		t.Run(fmt.Sprintf("(%s)", str), func(t *testing.T) {
 			iri := curie.New(str)
@@ -173,10 +175,10 @@ func TestSeq(t *testing.T) {
 		"":      {},
 		"a:":    {"a"},
 		"a:b":   {"a", "b"},
-		"a:b/c": {"a", "b", "c"},
+		"a:b/c": {"a", "b/c"},
 		"b":     {"", "b"},
-		"b/c":   {"", "b", "c"},
-		"b/c/d": {"", "b", "c", "d"},
+		"b/c":   {"", "b/c"},
+		"b/c/d": {"", "b/c/d"},
 	} {
 		t.Run(fmt.Sprintf("(%s)", str), func(t *testing.T) {
 			iri := curie.New(str)
@@ -187,28 +189,28 @@ func TestSeq(t *testing.T) {
 	}
 }
 
-func TestPath(t *testing.T) {
-	for str, seq := range map[string]string{
-		"":      "",
-		"a:":    "a",
-		"a:b":   "a/b",
-		"a:b/c": "a/b/c",
-		"b":     "b",
-		"b/c":   "b/c",
-		"b/c/d": "b/c/d",
-	} {
-		t.Run(fmt.Sprintf("(%s)", str), func(t *testing.T) {
-			iri := curie.New(str)
+// func TestPath(t *testing.T) {
+// 	for str, seq := range map[string]string{
+// 		"":      "",
+// 		"a:":    "a",
+// 		"a:b":   "a/b",
+// 		"a:b/c": "a/b/c",
+// 		"b":     "b",
+// 		"b/c":   "b/c",
+// 		"b/c/d": "b/c/d",
+// 	} {
+// 		t.Run(fmt.Sprintf("(%s)", str), func(t *testing.T) {
+// 			iri := curie.New(str)
 
-			it.Ok(t).
-				If(curie.Path(iri)).Equal(seq)
-		})
-	}
-}
+// 			it.Ok(t).
+// 				If(curie.Path(iri)).Equal(seq)
+// 		})
+// 	}
+// }
 
 func TestURL(t *testing.T) {
 	compact := curie.New("wikipedia:CURIE")
-	url, err := curie.URL(map[string]string{
+	url, err := curie.URL(curie.Prefixes{
 		"wikipedia": "http://en.wikipedia.org/wiki/",
 	}, compact)
 
@@ -222,12 +224,12 @@ func TestURLCompatibility(t *testing.T) {
 	curi := curie.New(uri)
 
 	expect, _ := url.Parse(uri)
-	native, err := curie.URL(map[string]string{}, curi)
+	native, err := curie.URL(curie.Prefixes{}, curi)
 
 	it.Ok(t).
-		If(curi.String()).Equal(uri).
+		If(string(curi)).Equal(uri).
 		If(curi.Safe()).Equal("[" + uri + "]").
-		If(curie.Seq(curi)).Equal([]string{"https", "", "", "example.com", "a", "b", "c?de=fg&foo=bar"}).
+		If(curie.Seq(curi)).Equal([]string{"https", "//example.com/a/b/c?de=fg&foo=bar"}).
 		//
 		IfNil(err).
 		If(native).Equal(expect)
@@ -244,7 +246,7 @@ func TestURLConvert(t *testing.T) {
 	} {
 		curi := curie.New(compact)
 		expect, _ := url.Parse(v[1])
-		uri, err := curie.URL(map[string]string{"a": v[0]}, curi)
+		uri, err := curie.URL(curie.Prefixes{"a": v[0]}, curi)
 
 		it.Ok(t).
 			If(err).Should().Equal(nil).
@@ -316,7 +318,7 @@ func TestLt(t *testing.T) {
 	}
 }
 
-func TestPrefixAndSuffix(t *testing.T) {
+func TestPrefixAndReference(t *testing.T) {
 	for str, val := range map[string][]string{
 		"":      {"", ""},
 		"a:":    {"a", ""},
@@ -330,7 +332,7 @@ func TestPrefixAndSuffix(t *testing.T) {
 
 			it.Ok(t).
 				If(curie.Prefix(iri)).Should().Equal(val[0]).
-				If(curie.Suffix(iri)).Should().Equal(val[1])
+				If(curie.Reference(iri)).Should().Equal(val[1])
 		})
 	}
 }
@@ -350,26 +352,27 @@ func TestJoin(t *testing.T) {
 			af3 := curie.Join(iri, "x", "y", "z")
 
 			it.Ok(t).
-				If(af1.String()).Equal(str + "/x").
-				If(af2.String()).Equal(str + "/x/y").
-				If(af3.String()).Equal(str + "/x/y/z")
+				If(string(af1)).Equal(str + "/x").
+				If(string(af2)).Equal(str + "/x/y").
+				If(string(af3)).Equal(str + "/x/y/z")
 		})
 	}
 }
 
 func TestJoinWithZero(t *testing.T) {
 	it.Ok(t).
-		If(curie.Join(curie.New(""), "x").String()).Equal("x").
-		If(curie.Join(curie.New(""), "x", "y").String()).Equal("x/y").
-		If(curie.Join(curie.New(""), "x", "y", "z").String()).Equal("x/y/z").
-		If(curie.Join(curie.New("a:"), "x").String()).Equal("a:x").
-		If(curie.Join(curie.New("a:"), "x", "y").String()).Equal("a:x/y").
-		If(curie.Join(curie.New("a:"), "x", "y", "z").String()).Equal("a:x/y/z").
-		If(curie.Join(curie.New("b"), "x").String()).Equal("b/x").
-		If(curie.Join(curie.New("b"), "x", "y").String()).Equal("b/x/y").
-		If(curie.Join(curie.New("b"), "x", "y", "z").String()).Equal("b/x/y/z")
+		If(string(curie.Join(curie.New(""), "x"))).Equal("x").
+		If(string(curie.Join(curie.New(""), "x", "y"))).Equal("x/y").
+		If(string(curie.Join(curie.New(""), "x", "y", "z"))).Equal("x/y/z").
+		If(string(curie.Join(curie.New("a:"), "x"))).Equal("a:x").
+		If(string(curie.Join(curie.New("a:"), "x", "y"))).Equal("a:x/y").
+		If(string(curie.Join(curie.New("a:"), "x", "y", "z"))).Equal("a:x/y/z").
+		If(string(curie.Join(curie.New("b"), "x"))).Equal("b/x").
+		If(string(curie.Join(curie.New("b"), "x", "y"))).Equal("b/x/y").
+		If(string(curie.Join(curie.New("b"), "x", "y", "z"))).Equal("b/x/y/z")
 }
 
+/*
 func TestJoinImmutable(t *testing.T) {
 	r3 := curie.New("a:b/c/d")
 	rP := curie.Parent(r3)
@@ -380,7 +383,9 @@ func TestJoinImmutable(t *testing.T) {
 		If(rP.String()).Should().Equal("a:b/c").
 		If(rN.String()).Should().Equal("a:b/c/t")
 }
+*/
 
+/*
 func TestParent(t *testing.T) {
 	it.Ok(t).
 		If(curie.Parent(curie.New("a:b/c/d")).String()).Equal("a:b/c").
@@ -396,7 +401,9 @@ func TestParent(t *testing.T) {
 		If(curie.Parent(curie.New("a:b/c/d"), -5).String()).Equal("a:b/c/d").
 		If(curie.Parent(curie.New("b"), 1).String()).Equal("")
 }
+*/
 
+/*
 func TestChild(t *testing.T) {
 	it.Ok(t).
 		If(curie.Child(curie.New("a:b/c/d"))).Equal("d").
@@ -409,6 +416,7 @@ func TestChild(t *testing.T) {
 		If(curie.Child(curie.New("a:b/c/d"), -3)).Equal("d").
 		If(curie.Child(curie.New("a:b/c/d"), -4)).Equal("")
 }
+*/
 
 func TestTypeSafe(t *testing.T) {
 	type A curie.IRI
@@ -420,25 +428,25 @@ func TestTypeSafe(t *testing.T) {
 	c := C(curie.Join(curie.IRI(b), "c"))
 
 	it.Ok(t).
-		If(curie.IRI(a).String()).Should().Equal("a:").
-		If(curie.IRI(b).String()).Should().Equal("a:b").
-		If(curie.IRI(c).String()).Should().Equal("a:b/c")
+		If(string(curie.IRI(a))).Should().Equal("a:").
+		If(string(curie.IRI(b))).Should().Equal("a:b").
+		If(string(curie.IRI(c))).Should().Equal("a:b/c")
 }
 
 func TestLinkedData(t *testing.T) {
 	type Struct struct {
-		ID curie.IRI     `json:"id"`
-		LA *curie.String `json:"a,omitempty"`
-		LB *curie.IRI    `json:"b,omitempty"`
+		ID curie.IRI  `json:"id"`
+		LA *curie.IRI `json:"a,omitempty"`
+		LB *curie.IRI `json:"b,omitempty"`
 	}
 
 	b := curie.New("a:b/c")
 	test := map[*Struct]string{
-		{ID: curie.New(""), LA: curie.Safe(b), LB: &b}:      "{\"id\":\"\",\"a\":\"[a:b/c]\",\"b\":\"[a:b/c]\"}",
-		{ID: curie.New("a:"), LA: curie.Safe(b), LB: &b}:    "{\"id\":\"[a:]\",\"a\":\"[a:b/c]\",\"b\":\"[a:b/c]\"}",
-		{ID: curie.New("b"), LA: curie.Safe(b), LB: &b}:     "{\"id\":\"[b]\",\"a\":\"[a:b/c]\",\"b\":\"[a:b/c]\"}",
-		{ID: curie.New("a:b"), LA: curie.Safe(b), LB: &b}:   "{\"id\":\"[a:b]\",\"a\":\"[a:b/c]\",\"b\":\"[a:b/c]\"}",
-		{ID: curie.New("a:b/c"), LA: curie.Safe(b), LB: &b}: "{\"id\":\"[a:b/c]\",\"a\":\"[a:b/c]\",\"b\":\"[a:b/c]\"}",
+		{ID: curie.New(""), LA: &b, LB: &b}:      "{\"id\":\"\",\"a\":\"[a:b/c]\",\"b\":\"[a:b/c]\"}",
+		{ID: curie.New("a:"), LA: &b, LB: &b}:    "{\"id\":\"[a:]\",\"a\":\"[a:b/c]\",\"b\":\"[a:b/c]\"}",
+		{ID: curie.New("b"), LA: &b, LB: &b}:     "{\"id\":\"[b]\",\"a\":\"[a:b/c]\",\"b\":\"[a:b/c]\"}",
+		{ID: curie.New("a:b"), LA: &b, LB: &b}:   "{\"id\":\"[a:b]\",\"a\":\"[a:b/c]\",\"b\":\"[a:b/c]\"}",
+		{ID: curie.New("a:b/c"), LA: &b, LB: &b}: "{\"id\":\"[a:b/c]\",\"a\":\"[a:b/c]\",\"b\":\"[a:b/c]\"}",
 	}
 
 	for eg, expect := range test {

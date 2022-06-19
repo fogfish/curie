@@ -13,14 +13,14 @@ The type `curie` ("Compact URI") defines a generic syntax for expressing URIs by
 
 ## Inspiration 
 
-Linked-Data are used widely by Semantic Web to publish structured data so that it can be interlinked by applications. Internationalized Resource Identifiers (IRIs) are key elements to cross-link data structure and establish global references (pointers) to data elements. These IRIs may be written as relative, absolute or compact IRIs. The `curie` type is just a formal definition of **compact IRI** (superset of XML QNames). 
+Linked-Data are used widely by Semantic Web to publish structured data so that it can be interlinked by applications. Internationalized Resource Identifiers (IRIs) are key elements to cross-link data structure and establish global references (pointers) to data elements. These IRIs may be written as relative, absolute or compact IRIs. The `curie` type is just a formal definition of **compact IRI** (superset of XML QNames, with the modification that the format of the strings after the colon is looser). 
 
-Another challenge solved by `curie` is a formal mechanism to permit the use of hierarchical extensible name collections and its serialization. All-in-all CURIEs expand to any IRI.
+Another challenge solved by `curie` is a formal mechanism to permit the use of the concept of scoping, where identities are created within a unique scope, and that scope's collection is managed by the group that defines it. All-in-all CURIEs expand to any IRI.
 
 
 ## Getting started
 
-The latest version of the library is available at `main` branch of this repository. All development, including new features and bug fixes, take place on the `main` branch using forking and pull requests as described in contribution guidelines.
+The latest version of the library is available at `main` branch of this repository. All development, including new features and bug fixes, take place on the `main` branch using forking and pull requests as described in contribution guidelines. The stable version is available via Golang modules.
 
 ```go
 import "github.com/fogfish/curie"
@@ -32,8 +32,10 @@ compact := curie.New("wikipedia:CURIE")
 //
 // expands compact URI to absolute one
 //   ⟿ http://en.wikipedia.org/wiki/CURIE
-prefix := map[string]string{"wiki": "http://en.wikipedia.org/wiki/"}
-url := curie.URI(prefix, compact)
+prefixes := curie.Prefixes{
+  "wikipedia": "http://en.wikipedia.org/wiki/",
+}
+url := curie.URI(prefixes, compact)
 ```
 
 The type specification is available at [go doc](https://pkg.go.dev/github.com/fogfish/curie).
@@ -41,13 +43,13 @@ The type specification is available at [go doc](https://pkg.go.dev/github.com/fo
 
 ### CURIE format
 
-Compact URI is superset of XML QNames. It is comprised of two components: a prefix and a suffix, separated by `:`. Omit prefix to declare a relative URI; omit suffix to declare namespace only; omit both components to declare empty URI. See [W3C CURIE Syntax 1.0](https://www.w3.org/TR/2010/NOTE-curie-20101216/)
+Compact URI is superset of XML QNames, with the modification that the format of the strings after the colon is looser. It is comprised of two components: a prefix and a reference, separated by `:`. Omit prefix to declare a relative IRI; omit suffix to declare namespace only. See [W3C CURIE Syntax 1.0](https://www.w3.org/TR/2010/NOTE-curie-20101216/)
 
 ```
 safe_curie  :=   '[' curie ']'
-curie       :=   [ [ prefix ] ':' ] suffix
+curie       :=   [ [ prefix ] ':' ] reference
 prefix      :=   NCName
-suffix      :=   NCName [ / suffix ]
+reference   :=   irelative-ref (as defined in IRI, RFC 3987)
 ```
 
 ### CURIE "algebra"
@@ -62,19 +64,18 @@ z := curie.New("")
 a := curie.New(/* ... */)
 b := curie.New(/* ... */)
 
-// rank: |CURIE| ⟼ Int
+// rank: |CURIE| ⟼ EMPTY, PREFIX, REFERENCE
 curie.Rank(a)
 
 // unary decompose: CURIE ⟼ string
 curie.Prefix(c)
-curie.Suffix(c)
+curie.Reference(c)
 
 // binary ordering: CURIE ≼ CURIE ⟼ bool 
 curie.Eq(a, b)
 curie.Lt(a, b)
 
-
-// binary compose: CURIE × CURIE ⟼ CURIE
+// binary compose: CURIE × String ⟼ CURIE
 curie.Join(a, b)
 ```
 
@@ -86,40 +87,14 @@ The datatype is compatible with traditional URIs
 // any absolute URIs are parsable to CURIE
 compact := curie.New("https://example.com/a/b/c")
 
-// String is an identity function
+// cast to string, it is an equivalent to input
 //   ⟿ https://example.com/a/b/c
-compact.String()
+string(compact)
 
 //
 // expands compact URI to absolute one
 //   ⟿ https://example.com/a/b/c
-url, err := compact.URI("https://example.com/a/b/c")
-```
-
-### Hierarchy
-
-CURIE type is core type to organize hierarchies. An application declares `A ⟼ B` hierarchical relation using paths, prefixes and suffixes. 
-
-```go
-root := curie.New("some:a")
-
-// construct 2nd rank curie using one of those functions
-rank2 := curie.New("some:a/b")
-rank2 := curie.Join(root, "b")
-
-//
-// parent and prefix of rank2 node is root
-//  ⟿ some:a
-curie.Parent(rank2)
-
-//
-// suffix of rank2 node is 
-//  ⟿ b
-curie.Child(rank2)
-
-//
-// and so on
-curie.New("some:a/b/c/d/e")
+url, err := curie.URI("https://example.com/a/b/c")
 ```
 
 ### Linked-data
@@ -129,15 +104,14 @@ Cross-linking of structured data is an essential part of type safe domain driven
 ```go
 type Person struct {
   ID      curie.IRI
-  Social  *curie.String
+  Social  *curie.IRI
   Father  *curie.IRI
   Mother  *curie.IRI
   Friends []curie.IRI
 }
 ```
 
-This example uses CURIE data type. `ID` is only used as primary key, `IRI` is a "pointer" to linked-data. `curie.String` is an alternative approach to defined IRI using safe notation.
-
+This example uses CURIE data type. `ID` is a primary key, all other `IRI` is a "pointer" to linked-data.
 
 ## How To Contribute
 
