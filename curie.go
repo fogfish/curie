@@ -18,7 +18,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
-	"path"
 	"strings"
 )
 
@@ -30,36 +29,25 @@ import (
 
 /*
 
-IRI is compact URI, defined as superset of XML QNames.
+IRI is compact URI, defined as superset of XML QNames, with the modification
+that the format of the strings after the colon is looser.
   safe_curie  :=   '[' curie ']'
-  curie       :=   [ [ prefix ] ':' ] suffix
+  curie       :=   [ [ prefix ] ':' ] reference
   prefix      :=   NCName
-  suffix      :=   NCName [ / suffix ]
+	reference   :=   irelative-ref (as defined in IRI, RFC 3987)
 */
-type IRI struct {
-	// sequence of IRI segments
-	seq []string
-}
-
-/*
-
-String transform CURIE to string
-*/
-func (iri IRI) String() string {
-	return join(iri.seq)
-}
+type IRI string
 
 /*
 
 Safe transforms CURIE to safe string
 */
 func (iri IRI) Safe() string {
-	val := iri.String()
-	if val == "" {
+	if len(iri) == 0 {
 		return ""
 	}
 
-	return "[" + val + "]"
+	return "[" + string(iri) + "]"
 }
 
 /*
@@ -67,7 +55,7 @@ func (iri IRI) Safe() string {
 MarshalJSON `IRI ⟼ "[prefix:suffix]"`
 */
 func (iri IRI) MarshalJSON() ([]byte, error) {
-	if Rank(iri) == 0 {
+	if len(iri) == 0 {
 		return json.Marshal("")
 	}
 
@@ -91,23 +79,15 @@ func (iri *IRI) UnmarshalJSON(b []byte) error {
 
 //------------------------------------------------------------------------------
 //
-// String
+// Prefixes
 //
 //------------------------------------------------------------------------------
 
 /*
 
-String is safe representation of IRI
+Prefixes is a collection of prefixes defined by the application
 */
-type String string
-
-/*
-
-IRI convers Safe CURIE to IRI type
-*/
-func (s String) IRI() IRI {
-	return New(string(s))
-}
+type Prefixes map[string]string
 
 //------------------------------------------------------------------------------
 //
@@ -126,7 +106,7 @@ func New(iri string, args ...interface{}) IRI {
 		val = fmt.Sprintf(iri, args...)
 	}
 
-	return IRI{seq: split(strings.Trim(val, "[]"))}
+	return IRI(strings.Trim(val, "[]"))
 }
 
 /*
@@ -134,47 +114,90 @@ func New(iri string, args ...interface{}) IRI {
 IsEmpty is an alias to curie.Rank(iri) == 0
 */
 func IsEmpty(iri IRI) bool {
-	return len(iri.seq) == 0
+	return len(iri) == 0
 }
+
+const (
+	EMPTY = iota
+	PREFIX
+	REFERENCE
+)
 
 /*
 
-Rank of CURIE, number of segments
+Rank of CURIE, number of elements
 Rank is an alias of len(curie.Seq(iri))
 */
 func Rank(iri IRI) int {
-	return len(iri.seq)
+	if len(iri) == 0 {
+		return EMPTY
+	}
+
+	n := strings.IndexRune(string(iri), ':')
+	if n == len(iri)-1 {
+		return PREFIX
+	}
+
+	return REFERENCE
 }
 
 /*
 
 Seq Returns CURIE segments
   a: ⟼ [ a ]
-  a:b/c ⟼ [a, b, c]
-  a:b/c/d ⟼ [a, b, c, d ]
+	b ⟼ [ , b ]
+  a:b ⟼ [a, b]
+  a:b/c/d ⟼ [a, b/c/d ]
 */
 func Seq(iri IRI) []string {
-	return iri.seq
+	if len(iri) == 0 {
+		return []string{}
+	}
+
+	n := strings.IndexRune(string(iri), ':')
+	if n == -1 {
+		return []string{"", string(iri)}
+	}
+
+	if n == len(iri)-1 {
+		return []string{string(iri)[:n]}
+	}
+
+	return []string{string(iri)[:n], string(iri)[n+1:]}
 }
 
 /*
 
-Safe transforms CURIE to safe string
+Prefix decomposes CURIE and return its prefix CURIE as string value.
 */
-func Safe(iri IRI) *String {
-	val := String(iri.Safe())
-	return &val
+func Prefix(iri IRI) string {
+	if len(iri) == 0 {
+		return ""
+	}
+
+	n := strings.IndexRune(string(iri), ':')
+	if n == -1 {
+		return ""
+	}
+
+	return string(iri)[:n]
 }
 
 /*
 
-Path converts CURIE to relative file system path.
-  a: ⟼ a
-  a:b/c ⟼ a/b/c
-  a:b/c/d ⟼ a/b/c/d
+Reference decomposes CURIE and return its reference as string value.
 */
-func Path(iri IRI) string {
-	return path.Join(iri.seq...)
+func Reference(iri IRI) string {
+	if len(iri) == 0 {
+		return ""
+	}
+
+	n := strings.IndexRune(string(iri), ':')
+	if n == -1 {
+		return string(iri)
+	}
+
+	return string(iri)[n+1:]
 }
 
 /*
@@ -182,22 +205,23 @@ func Path(iri IRI) string {
 URI converts CURIE to fully qualified URL
   wikipedia:CURIE ⟼ http://en.wikipedia.org/wiki/CURIE
 */
-func URI(prefixes map[string]string, iri IRI) string {
-	if IsEmpty(iri) {
+func URI(prefixes Prefixes, iri IRI) string {
+	if len(iri) == 0 {
 		return ""
 	}
-	seq := iri.seq
 
-	if seq[0] == "" {
-		return strings.Join(seq[1:], "/")
-	}
-
-	prefix, exists := prefixes[seq[0]]
+	//
+	// A host language MAY declare a default prefix value, or
+	// MAY provide a mechanism for defining a default prefix value.
+	// In such a host language, when the prefix is omitted from a CURIE,
+	// the default prefix value MUST be used.
+	//
+	prefix, exists := prefixes[Prefix(iri)]
 	if !exists {
-		return iri.String()
+		return string(iri)
 	}
 
-	return prefix + strings.Join(seq[1:], "/")
+	return prefix + Reference(iri)
 }
 
 /*
@@ -205,7 +229,7 @@ func URI(prefixes map[string]string, iri IRI) string {
 URL converts CURIE to fully qualified url.URL type
   wikipedia:CURIE ⟼ http://en.wikipedia.org/wiki/CURIE
 */
-func URL(prefixes map[string]string, iri IRI) (*url.URL, error) {
+func URL(prefixes Prefixes, iri IRI) (*url.URL, error) {
 	uri := URI(prefixes, iri)
 
 	if uri == "" {
@@ -220,18 +244,7 @@ func URL(prefixes map[string]string, iri IRI) (*url.URL, error) {
 Eq compares two CURIEs, return true if they are equal.
 */
 func Eq(a, b IRI) bool {
-	if Rank(a) != Rank(b) {
-		return false
-	}
-
-	seq := b.seq
-	for i, v := range a.seq {
-		if seq[i] != v {
-			return false
-		}
-	}
-
-	return true
+	return a == b
 }
 
 /*
@@ -243,37 +256,7 @@ func Lt(a, b IRI) bool {
 		return Rank(a) < Rank(b)
 	}
 
-	seq := b.seq
-	for i, v := range a.seq {
-		if seq[i] != v {
-			return v < seq[i]
-		}
-	}
-
-	return false
-}
-
-/*
-
-Prefix decomposes CURIE and return its prefix CURIE as string value.
-*/
-func Prefix(iri IRI) string {
-	if len(iri.seq) == 0 {
-		return ""
-	}
-	return iri.seq[0]
-}
-
-/*
-
-Suffix decomposes CURIE and return its suffix.
-*/
-func Suffix(iri IRI) string {
-	if len(iri.seq) < 2 {
-		return ""
-	}
-
-	return strings.Join(iri.seq[1:], "/")
+	return a < b
 }
 
 /*
@@ -282,137 +265,14 @@ Join composes segments into new descendant CURIE.
   a:b × [c, d, e] ⟼ a:b/c/d/e
 */
 func Join(iri IRI, segments ...string) IRI {
-	seq := append([]string{}, iri.seq...)
-	if len(seq) == 0 {
-		seq = append(seq, "")
-	}
+	path := strings.Join(segments, "/")
 
-	for _, x := range segments {
-		seq = append(seq,
-			strings.FieldsFunc(x,
-				func(x rune) bool {
-					return x == '/' || x == ':'
-				},
-			)...,
-		)
-	}
-
-	return IRI{seq: seq}
-}
-
-/*
-
-Parent decomposes CURIE and return its parent as CURIE type.
-
-  a:b/c/d/e ⟼¹ a:b/c/d  a:b/c/d/e ⟼⁻¹ a:
-  a:b/c/d/e ⟼² a:b/c    a:b/c/d/e ⟼⁻² a:b
-  a:b/c/d/e ⟼³ a:b      a:b/c/d/e ⟼⁻³ a:b/c
-  ...
-  a:b/c/d/e ⟼ⁿ a:       a:b/c/d/e ⟼⁻ⁿ a:b/c/d/e
-*/
-func Parent(iri IRI, rank ...int) IRI {
-	r := 1
-	if len(rank) > 0 {
-		r = rank[0]
-	}
-	if r < 0 {
-		r = len(iri.seq) + r
-	}
-
-	n := len(iri.seq) - r
-	switch {
-	case n < 0:
-		return IRI{seq: []string{}}
-	case n > len(iri.seq):
-		return IRI{seq: append([]string{}, iri.seq...)}
-	case n == 1 && iri.seq[0] == "":
-		return IRI{seq: []string{}}
+	switch Rank(iri) {
+	case EMPTY:
+		return IRI(path)
+	case PREFIX:
+		return IRI(string(iri) + path)
 	default:
-		return IRI{seq: append([]string{}, iri.seq[:n]...)}
+		return IRI(string(iri) + "/" + path)
 	}
-}
-
-/*
-
-Child decomposes CURIE and return its suffix as CURIE type.
-
-  a:b/c/d/e ⟿¹ e          a:b/c/d/e ⟿⁻¹ b/c/d/e
-  a:b/c/d/e ⟿² d/e        a:b/c/d/e ⟿⁻² c/d/e
-  a:b/c/d/e ⟿³ c/d/e      a:b/c/d/e ⟿⁻³ d/e
-  ...
-  a:b/c/d/e ⟿ⁿ a:b/c/d/e  a:b/c/d/e ⟿⁻ⁿ e
-*/
-func Child(iri IRI, rank ...int) string {
-	r := 1
-	if len(rank) > 0 {
-		r = rank[0]
-	}
-
-	if r < 0 {
-		r = len(iri.seq) + r
-	}
-
-	n := Rank(iri) - r
-	switch {
-	case n >= len(iri.seq):
-		return ""
-	case n > 0:
-		return strings.Join(iri.seq[n:len(iri.seq)], "/")
-	default:
-		return join(iri.seq)
-	}
-}
-
-//------------------------------------------------------------------------------
-//
-// private
-//
-//------------------------------------------------------------------------------
-
-/*
-
-split parses tokens `prefix:suffix[/suffix/...]`
-*/
-func split(val string) []string {
-	seq := strings.Split(val, ":")
-
-	// zero
-	if len(seq) == 1 && seq[0] == "" {
-		return []string{}
-	}
-
-	// zeroPrefix
-	if len(seq) == 1 {
-		return append([]string{""}, strings.Split(seq[0], "/")...)
-	}
-
-	// zeroSuffix
-	if seq[1] == "" {
-		return []string{seq[0]}
-	}
-
-	return append([]string{seq[0]}, strings.Split(seq[1], "/")...)
-}
-
-/*
-
-join sequence to string `prefix:suffix[/suffix/...]`
-*/
-func join(seq []string) string {
-	// zero
-	if len(seq) == 0 || (len(seq) == 1 && seq[0] == "") {
-		return ""
-	}
-
-	// zeroSuffix
-	if len(seq) == 1 && seq[0] != "" {
-		return seq[0] + ":"
-	}
-
-	// zeroPrefix
-	if seq[0] == "" {
-		return strings.Join(seq[1:], "/")
-	}
-
-	return seq[0] + ":" + strings.Join(seq[1:], "/")
 }
