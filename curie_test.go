@@ -210,7 +210,7 @@ func TestSeq(t *testing.T) {
 
 func TestURL(t *testing.T) {
 	compact := curie.New("wikipedia:CURIE")
-	url, err := curie.URL(curie.Prefixes{
+	url, err := curie.URL(curie.Namespaces{
 		"wikipedia": "http://en.wikipedia.org/wiki/",
 	}, compact)
 
@@ -224,7 +224,7 @@ func TestURLCompatibility(t *testing.T) {
 	curi := curie.New(uri)
 
 	expect, _ := url.Parse(uri)
-	native, err := curie.URL(curie.Prefixes{}, curi)
+	native, err := curie.URL(curie.Namespaces{}, curi)
 
 	it.Ok(t).
 		If(string(curi)).Equal(uri).
@@ -246,7 +246,7 @@ func TestURLConvert(t *testing.T) {
 	} {
 		curi := curie.New(compact)
 		expect, _ := url.Parse(v[1])
-		uri, err := curie.URL(curie.Prefixes{"a": v[0]}, curi)
+		uri, err := curie.URL(curie.Namespaces{"a": v[0]}, curi)
 
 		it.Ok(t).
 			If(err).Should().Equal(nil).
