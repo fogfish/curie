@@ -87,7 +87,21 @@ func (iri *IRI) UnmarshalJSON(b []byte) error {
 
 Prefixes is a collection of prefixes defined by the application
 */
-type Prefixes map[string]string
+type Prefixes interface {
+	Lookup(string) (string, bool)
+}
+
+/*
+
+Namespaces is constant in-memory collection of prefixes defined by the application
+*/
+type Namespaces map[string]string
+
+// Lookup prefix in the map
+func (ns Namespaces) Lookup(prefix string) (string, bool) {
+	val, exists := ns[prefix]
+	return val, exists
+}
 
 //------------------------------------------------------------------------------
 //
@@ -216,7 +230,7 @@ func URI(prefixes Prefixes, iri IRI) string {
 	// In such a host language, when the prefix is omitted from a CURIE,
 	// the default prefix value MUST be used.
 	//
-	prefix, exists := prefixes[Prefix(iri)]
+	prefix, exists := prefixes.Lookup(Prefix(iri))
 	if !exists {
 		return string(iri)
 	}
