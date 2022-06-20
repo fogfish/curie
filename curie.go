@@ -131,6 +131,10 @@ func IsEmpty(iri IRI) bool {
 	return len(iri) == 0
 }
 
+/*
+
+Built-in CURIE ranks
+*/
 const (
 	EMPTY = iota
 	PREFIX
