@@ -350,11 +350,19 @@ func TestJoin(t *testing.T) {
 			af1 := curie.Join(iri, "x")
 			af2 := curie.Join(iri, "x", "y")
 			af3 := curie.Join(iri, "x", "y", "z")
+			af4 := curie.Join(iri)
+			af5 := curie.Join(iri, "")
+			af6 := curie.Join(iri, "", "")
+			af7 := curie.Join(iri, "", "", "")
 
 			it.Ok(t).
 				If(string(af1)).Equal(str + "/x").
 				If(string(af2)).Equal(str + "/x/y").
-				If(string(af3)).Equal(str + "/x/y/z")
+				If(string(af3)).Equal(str + "/x/y/z").
+				If(string(af4)).Equal(str).
+				If(string(af5)).Equal(str).
+				If(string(af6)).Equal(str).
+				If(string(af7)).Equal(str)
 		})
 	}
 }
