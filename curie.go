@@ -283,8 +283,32 @@ Join composes segments into new descendant CURIE.
   a:b × [c, d, e] ⟼ a:b/c/d/e
 */
 func Join(iri IRI, segments ...string) IRI {
-	path := strings.Join(segments, "/")
+	if len(segments) == 0 {
+		return iri
+	}
 
+	// custom strings.Join that ignores empty segments
+	n := (len(segments) - 1)
+	for i := 0; i < len(segments); i++ {
+		n += len(segments[i])
+	}
+
+	var b strings.Builder
+	b.Grow(n)
+	b.WriteString(segments[0])
+	for _, s := range segments[1:] {
+		if s != "" {
+			b.WriteString("/")
+			b.WriteString(s)
+		}
+	}
+	path := b.String()
+
+	if len(path) == 0 {
+		return iri
+	}
+
+	//
 	switch Rank(iri) {
 	case EMPTY:
 		return IRI(path)
