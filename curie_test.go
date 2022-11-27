@@ -49,6 +49,7 @@ func TestNewSafe(t *testing.T) {
 		"b",
 		"b/c",
 		"b/c/d",
+		"b/c[d]",
 	} {
 		t.Run(fmt.Sprintf("(%s)", str), func(t *testing.T) {
 			iri := curie.New("[" + str + "]")
@@ -172,8 +173,8 @@ func TestRank(t *testing.T) {
 
 func TestSeq(t *testing.T) {
 	for str, seq := range map[string][]string{
-		"":      {},
-		"a:":    {"a"},
+		"":      {"", ""},
+		"a:":    {"a", ""},
 		"a:b":   {"a", "b"},
 		"a:b/c": {"a", "b/c"},
 		"b":     {"", "b"},
@@ -182,9 +183,11 @@ func TestSeq(t *testing.T) {
 	} {
 		t.Run(fmt.Sprintf("(%s)", str), func(t *testing.T) {
 			iri := curie.New(str)
+			a, b := curie.Seq(iri)
 
 			it.Ok(t).
-				If(curie.Seq(iri)).Equal(seq)
+				If(a).Equal(seq[0]).
+				If(b).Equal(seq[1])
 		})
 	}
 }
@@ -219,17 +222,30 @@ func TestURL(t *testing.T) {
 		If(url.String()).Equal("http://en.wikipedia.org/wiki/CURIE")
 }
 
+func TestFromURL(t *testing.T) {
+	absolute := "http://en.wikipedia.org/wiki/CURIE"
+	compact := curie.FromURI(curie.Namespaces{
+		"wikipedia": "http://en.wikipedia.org/wiki/",
+	}, absolute)
+
+	it.Ok(t).
+		If(compact).Equal(curie.IRI("wikipedia:CURIE"))
+}
+
 func TestURLCompatibility(t *testing.T) {
 	uri := "https://example.com/a/b/c?de=fg&foo=bar"
 	curi := curie.New(uri)
 
 	expect, _ := url.Parse(uri)
 	native, err := curie.URL(curie.Namespaces{}, curi)
+	schema, path := curie.Seq(curi)
 
 	it.Ok(t).
 		If(string(curi)).Equal(uri).
 		If(curi.Safe()).Equal("[" + uri + "]").
-		If(curie.Seq(curi)).Equal([]string{"https", "//example.com/a/b/c?de=fg&foo=bar"}).
+		If(schema).Equal("https").
+		If(path).Equal("//example.com/a/b/c?de=fg&foo=bar").
+
 		//
 		IfNil(err).
 		If(native).Equal(expect)
