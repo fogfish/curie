@@ -223,13 +223,29 @@ func TestURL(t *testing.T) {
 }
 
 func TestFromURL(t *testing.T) {
-	absolute := "http://en.wikipedia.org/wiki/CURIE"
-	compact := curie.FromURI(curie.Namespaces{
+	prefixes := curie.Namespaces{
 		"wikipedia": "http://en.wikipedia.org/wiki/",
-	}, absolute)
+	}
+	absolute := "http://en.wikipedia.org/wiki/CURIE"
+	compact := curie.IRI("wikipedia:CURIE")
 
-	it.Ok(t).
-		If(compact).Equal(curie.IRI("wikipedia:CURIE"))
+	t.Run("Identity", func(t *testing.T) {
+		uri := curie.URI(prefixes, curie.FromURI(prefixes, absolute))
+
+		it.Ok(t).If(uri).Equal(absolute)
+	})
+
+	t.Run("KnownPrefix", func(t *testing.T) {
+		iri := curie.FromURI(prefixes, absolute)
+
+		it.Ok(t).If(iri).Equal(compact)
+	})
+
+	t.Run("UnknownPrefix", func(t *testing.T) {
+		compact := curie.FromURI(curie.Namespaces{}, absolute)
+
+		it.Ok(t).If(compact).Equal(curie.IRI(absolute))
+	})
 }
 
 func TestURLCompatibility(t *testing.T) {
