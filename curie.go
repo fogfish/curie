@@ -7,7 +7,6 @@
 //
 
 /*
-
 Package curie implements the type for compact URI. It defines a generic syntax
 for expressing URIs by abbreviated literal as defined by the W3C.
 https://www.w3.org/TR/2010/NOTE-curie-20101216/
@@ -27,21 +26,16 @@ import (
 //
 //------------------------------------------------------------------------------
 
-/*
-
-IRI is compact URI, defined as superset of XML QNames, with the modification
-that the format of the strings after the colon is looser.
-  safe_curie  :=   '[' curie ']'
-  curie       :=   [ [ prefix ] ':' ] reference
-  prefix      :=   NCName
-	reference   :=   irelative-ref (as defined in IRI, RFC 3987)
-*/
+// IRI is compact URI, defined as superset of XML QNames, with the modification
+// that the format of the strings after the colon is looser.
+//
+// safe_curie  :=   '[' curie ']'
+// curie       :=   [ [ prefix ] ':' ] reference
+// prefix      :=   NCName
+// reference   :=   irelative-ref (as defined in IRI, RFC 3987)
 type IRI string
 
-/*
-
-Safe transforms CURIE to safe string
-*/
+// Safe transforms CURIE to safe string
 func (iri IRI) Safe() string {
 	if len(iri) == 0 {
 		return ""
@@ -50,10 +44,7 @@ func (iri IRI) Safe() string {
 	return "[" + string(iri) + "]"
 }
 
-/*
-
-MarshalJSON `IRI ⟼ "[prefix:suffix]"`
-*/
+// MarshalJSON `IRI ⟼ "[prefix:suffix]"`
 func (iri IRI) MarshalJSON() ([]byte, error) {
 	if len(iri) == 0 {
 		return json.Marshal("")
@@ -62,10 +53,7 @@ func (iri IRI) MarshalJSON() ([]byte, error) {
 	return json.Marshal(iri.Safe())
 }
 
-/*
-
-UnmarshalJSON `"[prefix:suffix]" ⟼ IRI`
-*/
+// UnmarshalJSON `"[prefix:suffix]" ⟼ IRI`
 func (iri *IRI) UnmarshalJSON(b []byte) error {
 	var path string
 	err := json.Unmarshal(b, &path)
@@ -83,19 +71,25 @@ func (iri *IRI) UnmarshalJSON(b []byte) error {
 //
 //------------------------------------------------------------------------------
 
-/*
-
-Prefixes is a collection of prefixes defined by the application
-*/
+// Prefixes is a collection of prefixes defined by the application
 type Prefixes interface {
+	Create(string) IRI
 	Lookup(string) (string, bool)
 }
 
-/*
-
-Namespaces is constant in-memory collection of prefixes defined by the application
-*/
+// Namespaces is constant in-memory collection of prefixes defined by the application
 type Namespaces map[string]string
+
+// Create new URI using prefix table
+func (ns Namespaces) Create(uri string) IRI {
+	for key, val := range ns {
+		if strings.HasPrefix(uri, val) {
+			return IRI(key + ":" + uri[len(val):])
+		}
+	}
+
+	return IRI(uri)
+}
 
 // Lookup prefix in the map
 func (ns Namespaces) Lookup(prefix string) (string, bool) {
@@ -109,43 +103,34 @@ func (ns Namespaces) Lookup(prefix string) (string, bool) {
 //
 //------------------------------------------------------------------------------
 
-/*
-
-New transform category of strings to IRI.
-*/
+// New transform category of strings to IRI.
 func New(iri string, args ...interface{}) IRI {
 	val := iri
+	if len(val) > 0 && (val[0] == '[' && val[len(val)-1] == ']') {
+		val = val[1 : len(val)-1]
+	}
 
 	if len(args) > 0 {
 		val = fmt.Sprintf(iri, args...)
 	}
 
-	return IRI(strings.Trim(val, "[]"))
+	return IRI(val)
 }
 
-/*
-
-IsEmpty is an alias to curie.Rank(iri) == 0
-*/
+// IsEmpty is an alias to curie.Rank(iri) == 0
 func IsEmpty(iri IRI) bool {
 	return len(iri) == 0
 }
 
-/*
-
-Built-in CURIE ranks
-*/
+// Built-in CURIE ranks
 const (
 	EMPTY = iota
 	PREFIX
 	REFERENCE
 )
 
-/*
-
-Rank of CURIE, number of elements
-Rank is an alias of len(curie.Seq(iri))
-*/
+// Rank of CURIE, number of elements
+// Rank is an alias of len(curie.Seq(iri))
 func Rank(iri IRI) int {
 	if len(iri) == 0 {
 		return EMPTY
@@ -159,35 +144,30 @@ func Rank(iri IRI) int {
 	return REFERENCE
 }
 
-/*
-
-Seq Returns CURIE segments
-  a: ⟼ [ a ]
-	b ⟼ [ , b ]
-  a:b ⟼ [a, b]
-  a:b/c/d ⟼ [a, b/c/d ]
-*/
-func Seq(iri IRI) []string {
+// Seq Returns CURIE segments
+//
+//	a: ⟼ [ a ]
+//	b ⟼ [ , b ]
+//	a:b ⟼ [a, b]
+//	a:b/c/d ⟼ [a, b/c/d ]
+func Seq(iri IRI) (string, string) {
 	if len(iri) == 0 {
-		return []string{}
+		return "", ""
 	}
 
 	n := strings.IndexRune(string(iri), ':')
 	if n == -1 {
-		return []string{"", string(iri)}
+		return "", string(iri)
 	}
 
 	if n == len(iri)-1 {
-		return []string{string(iri)[:n]}
+		return string(iri)[:n], ""
 	}
 
-	return []string{string(iri)[:n], string(iri)[n+1:]}
+	return string(iri)[:n], string(iri)[n+1:]
 }
 
-/*
-
-Prefix decomposes CURIE and return its prefix CURIE as string value.
-*/
+// Prefix decomposes CURIE and return its prefix CURIE as string value.
 func Prefix(iri IRI) string {
 	if len(iri) == 0 {
 		return ""
@@ -201,10 +181,7 @@ func Prefix(iri IRI) string {
 	return string(iri)[:n]
 }
 
-/*
-
-Reference decomposes CURIE and return its reference as string value.
-*/
+// Reference decomposes CURIE and return its reference as string value.
 func Reference(iri IRI) string {
 	if len(iri) == 0 {
 		return ""
@@ -218,11 +195,9 @@ func Reference(iri IRI) string {
 	return string(iri)[n+1:]
 }
 
-/*
-
-URI converts CURIE to fully qualified URL
-  wikipedia:CURIE ⟼ http://en.wikipedia.org/wiki/CURIE
-*/
+// URI converts CURIE to fully qualified URL
+//
+//	wikipedia:CURIE ⟼ http://en.wikipedia.org/wiki/CURIE
 func URI(prefixes Prefixes, iri IRI) string {
 	if len(iri) == 0 {
 		return ""
@@ -242,11 +217,16 @@ func URI(prefixes Prefixes, iri IRI) string {
 	return prefix + Reference(iri)
 }
 
-/*
+// URI converts fully qualified URL to CURIE
+//
+//	http://en.wikipedia.org/wiki/CURIE ⟼ wikipedia:CURIE
+func FromURI(prefixes Prefixes, uri string) IRI {
+	return prefixes.Create(uri)
+}
 
-URL converts CURIE to fully qualified url.URL type
-  wikipedia:CURIE ⟼ http://en.wikipedia.org/wiki/CURIE
-*/
+// URL converts CURIE to fully qualified url.URL type
+//
+//	wikipedia:CURIE ⟼ http://en.wikipedia.org/wiki/CURIE
 func URL(prefixes Prefixes, iri IRI) (*url.URL, error) {
 	uri := URI(prefixes, iri)
 
@@ -257,18 +237,12 @@ func URL(prefixes Prefixes, iri IRI) (*url.URL, error) {
 	return url.Parse(uri)
 }
 
-/*
-
-Eq compares two CURIEs, return true if they are equal.
-*/
+// Eq compares two CURIEs, return true if they are equal.
 func Eq(a, b IRI) bool {
 	return a == b
 }
 
-/*
-
-Lt compares two CURIEs, return true if left element is less than supplied one.
-*/
+// Lt compares two CURIEs, return true if left element is less than supplied one.
 func Lt(a, b IRI) bool {
 	if Rank(a) != Rank(b) {
 		return Rank(a) < Rank(b)
@@ -277,11 +251,9 @@ func Lt(a, b IRI) bool {
 	return a < b
 }
 
-/*
-
-Join composes segments into new descendant CURIE.
-  a:b × [c, d, e] ⟼ a:b/c/d/e
-*/
+// Join composes segments into new descendant CURIE.
+//
+//	a:b × [c, d, e] ⟼ a:b/c/d/e
 func Join(iri IRI, segments ...string) IRI {
 	if len(segments) == 0 {
 		return iri
