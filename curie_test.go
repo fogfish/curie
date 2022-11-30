@@ -270,6 +270,13 @@ func TestFromURL(t *testing.T) {
 
 		it.Ok(t).If(iri).Equal(curie.IRI("wikipedia:Ῥόδος"))
 	})
+
+	t.Run("PercentEncodedCorrupted", func(t *testing.T) {
+		iri := curie.FromURI(prefixes, `http://en.wikipedia.org/wiki/%%`)
+
+		it.Ok(t).If(iri).Equal(curie.IRI(`wikipedia:%%`))
+	})
+
 }
 
 func TestURLCompatibility(t *testing.T) {

@@ -90,7 +90,7 @@ func (ns Namespaces) Create(uri string) IRI {
 			ref := uri[len(val):]
 			val, err := url.QueryUnescape(ref)
 			if err != nil {
-				ref = val
+				val = ref
 			}
 
 			return IRI(key + ":" + val)
