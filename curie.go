@@ -82,9 +82,18 @@ type Namespaces map[string]string
 
 // Create new URI using prefix table
 func (ns Namespaces) Create(uri string) IRI {
+	// Note: All non-ASCII code points in the IRI should next be encoded as UTF-8
+	// https://en.wikipedia.org/wiki/Internationalized_Resource_Identifier
+	// https://www.ietf.org/rfc/rfc3987.html#section-5.3.2.3
 	for key, val := range ns {
 		if strings.HasPrefix(uri, val) {
-			return IRI(key + ":" + uri[len(val):])
+			ref := uri[len(val):]
+			val, err := url.QueryUnescape(ref)
+			if err != nil {
+				val = ref
+			}
+
+			return IRI(key + ":" + val)
 		}
 	}
 

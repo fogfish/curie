@@ -212,14 +212,32 @@ func TestSeq(t *testing.T) {
 // }
 
 func TestURL(t *testing.T) {
-	compact := curie.New("wikipedia:CURIE")
-	url, err := curie.URL(curie.Namespaces{
+	prefixes := curie.Namespaces{
 		"wikipedia": "http://en.wikipedia.org/wiki/",
-	}, compact)
+	}
+	t.Run("KnownPrefix", func(t *testing.T) {
+		url, err := curie.URL(prefixes, curie.IRI("wikipedia:CURIE"))
 
-	it.Ok(t).
-		IfNil(err).
-		If(url.String()).Equal("http://en.wikipedia.org/wiki/CURIE")
+		it.Ok(t).
+			IfNil(err).
+			If(url.String()).Equal("http://en.wikipedia.org/wiki/CURIE")
+	})
+
+	t.Run("UnknownPrefix", func(t *testing.T) {
+		url, err := curie.URL(prefixes, curie.IRI("wiki:CURIE"))
+
+		it.Ok(t).
+			IfNil(err).
+			If(url.String()).Equal("wiki:CURIE")
+	})
+
+	t.Run("PercentEncoded", func(t *testing.T) {
+		url, err := curie.URL(prefixes, curie.IRI("wikipedia:Ῥόδος"))
+
+		it.Ok(t).
+			IfNil(err).
+			If(url.String()).Equal("http://en.wikipedia.org/wiki/%E1%BF%AC%CF%8C%CE%B4%CE%BF%CF%82")
+	})
 }
 
 func TestFromURL(t *testing.T) {
@@ -242,10 +260,23 @@ func TestFromURL(t *testing.T) {
 	})
 
 	t.Run("UnknownPrefix", func(t *testing.T) {
-		compact := curie.FromURI(curie.Namespaces{}, absolute)
+		iri := curie.FromURI(curie.Namespaces{}, absolute)
 
-		it.Ok(t).If(compact).Equal(curie.IRI(absolute))
+		it.Ok(t).If(iri).Equal(curie.IRI(absolute))
 	})
+
+	t.Run("PercentEncoded", func(t *testing.T) {
+		iri := curie.FromURI(prefixes, `http://en.wikipedia.org/wiki/%E1%BF%AC%CF%8C%CE%B4%CE%BF%CF%82`)
+
+		it.Ok(t).If(iri).Equal(curie.IRI("wikipedia:Ῥόδος"))
+	})
+
+	t.Run("PercentEncodedCorrupted", func(t *testing.T) {
+		iri := curie.FromURI(prefixes, `http://en.wikipedia.org/wiki/%%`)
+
+		it.Ok(t).If(iri).Equal(curie.IRI(`wikipedia:%%`))
+	})
+
 }
 
 func TestURLCompatibility(t *testing.T) {
