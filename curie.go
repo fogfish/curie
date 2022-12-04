@@ -87,13 +87,8 @@ func (ns Namespaces) Create(uri string) IRI {
 	// https://www.ietf.org/rfc/rfc3987.html#section-5.3.2.3
 	for key, val := range ns {
 		if strings.HasPrefix(uri, val) {
-			ref := uri[len(val):]
-			val, err := url.QueryUnescape(ref)
-			if err != nil {
-				val = ref
-			}
-
-			return IRI(key + ":" + val)
+			ref := Decode(uri[len(val):])
+			return IRI(key + ":" + ref)
 		}
 	}
 
@@ -113,6 +108,7 @@ func (ns Namespaces) Lookup(prefix string) (string, bool) {
 //------------------------------------------------------------------------------
 
 // New transform category of strings to IRI.
+// It expects UTF-8 string according to RFC 3987.
 func New(iri string, args ...interface{}) IRI {
 	val := iri
 	if len(val) > 0 && (val[0] == '[' && val[len(val)-1] == ']') {
@@ -208,22 +204,12 @@ func Reference(iri IRI) string {
 //
 //	wikipedia:CURIE ⟼ http://en.wikipedia.org/wiki/CURIE
 func URI(prefixes Prefixes, iri IRI) string {
-	if len(iri) == 0 {
-		return ""
-	}
-
-	//
-	// A host language MAY declare a default prefix value, or
-	// MAY provide a mechanism for defining a default prefix value.
-	// In such a host language, when the prefix is omitted from a CURIE,
-	// the default prefix value MUST be used.
-	//
-	prefix, exists := prefixes.Lookup(Prefix(iri))
-	if !exists {
+	uri, err := URL(prefixes, iri)
+	if err != nil {
 		return string(iri)
 	}
 
-	return prefix + Reference(iri)
+	return uri.String()
 }
 
 // URI converts fully qualified URL to CURIE
@@ -237,10 +223,19 @@ func FromURI(prefixes Prefixes, uri string) IRI {
 //
 //	wikipedia:CURIE ⟼ http://en.wikipedia.org/wiki/CURIE
 func URL(prefixes Prefixes, iri IRI) (*url.URL, error) {
-	uri := URI(prefixes, iri)
+	if len(iri) == 0 {
+		return new(url.URL), nil
+	}
 
-	if uri == "" {
-		return &url.URL{}, nil
+	//
+	// A host language MAY declare a default prefix value, or
+	// MAY provide a mechanism for defining a default prefix value.
+	// In such a host language, when the prefix is omitted from a CURIE,
+	// the default prefix value MUST be used.
+	//
+	uri := string(iri)
+	if prefix, exists := prefixes.Lookup(Prefix(iri)); exists {
+		uri = prefix + Reference(iri)
 	}
 
 	return url.Parse(uri)
