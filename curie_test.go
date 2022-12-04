@@ -238,6 +238,14 @@ func TestURL(t *testing.T) {
 			IfNil(err).
 			If(url.String()).Equal("http://en.wikipedia.org/wiki/%E1%BF%AC%CF%8C%CE%B4%CE%BF%CF%82")
 	})
+
+	t.Run("Invalid URL", func(t *testing.T) {
+		v := curie.URI(prefixes, curie.IRI("%2f:first_path_segment_in_URL_cannot_contain_colon"))
+
+		it.Ok(t).If(v).Equal("%2f:first_path_segment_in_URL_cannot_contain_colon")
+
+	})
+
 }
 
 func TestFromURL(t *testing.T) {
