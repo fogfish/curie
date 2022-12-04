@@ -1,9 +1,8 @@
-package curie_test
+package curie
 
 import (
 	"testing"
 
-	"github.com/fogfish/curie"
 	"github.com/fogfish/it"
 )
 
@@ -23,6 +22,18 @@ func TestDecode(t *testing.T) {
 		"%s":       "%s",
 		"\uFFFD":   "%FF%FD",
 	} {
-		it.Ok(t).If(curie.Decode(uri)).Equal(iri)
+		it.Ok(t).If(Decode(uri)).Equal(iri)
+	}
+}
+
+func TestUnHex(t *testing.T) {
+	for hex, val := range map[byte]byte{
+		0x35: 0x05,
+		0x63: 0x0c,
+		0x43: 0x0c,
+		0x00: 0x00,
+		0x4F: 0x00,
+	} {
+		it.Ok(t).If(unhex(hex)).Equal(val)
 	}
 }
