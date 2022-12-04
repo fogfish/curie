@@ -31,16 +31,14 @@ func Decode(uri string) string {
 
 	raw := iri.String()
 
-	// raw, err := url.QueryUnescape(uri)
-	// if err != nil {
-	// 	raw = uri
-	// }
-
 	var str strings.Builder
 	for index, r := range raw {
-		if isGraphic(r) {
+		switch {
+		case r == utf8.RuneError:
+			str.WriteString("%FF%FD")
+		case unicode.IsGraphic(r):
 			str.WriteRune(r)
-		} else {
+		default:
 			b := raw[index]
 			str.WriteByte('%')
 			str.WriteByte(upperHex[b>>4])
@@ -50,10 +48,12 @@ func Decode(uri string) string {
 	return str.String()
 }
 
-// %3A %3F %3B %3D
-// %21 %23 %24 %26 %27 %28 %29 %2A %2B %2C %2F
-// %5B %5D
-// %40
+// Reserved characters are:
+//
+//	%21 %23 %24 %26 %27 %28 %29 %2A %2B %2C %2F
+//	%3A %3B %3D %3F
+//	%40
+//	%5B %5D
 func isReserved(hi, lo byte) bool {
 	switch {
 	case hi == '4' && lo == '0':
@@ -69,13 +69,6 @@ func isReserved(hi, lo byte) bool {
 	default:
 		return false
 	}
-}
-
-func isGraphic(r rune) bool {
-	if r == utf8.RuneError {
-		return false
-	}
-	return unicode.IsGraphic(r)
 }
 
 func unhex(c byte) byte {
