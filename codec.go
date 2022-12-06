@@ -6,8 +6,6 @@ import (
 	"unicode/utf8"
 )
 
-const upperHex = "0123456789ABCDEF"
-
 // Decode converts URIs to IRIs as defined by RFC 3987
 // https://www.rfc-editor.org/rfc/rfc3987#section-3.2
 func Decode(uri string) string {
@@ -55,29 +53,6 @@ func checkReserved(b byte) bool {
 		b == '*' || b == '+' || b == ',' ||
 		b == ';' || b == '='
 }
-
-// Reserved characters are:
-//
-//	%21 %23 %24 %26 %27 %28 %29 %2A %2B %2C %2F
-//	%3A %3B %3D %3F
-//	%40
-//	%5B %5D
-// func isReserved(hi, lo byte) bool {
-// 	switch {
-// 	case hi == '4' && lo == '0':
-// 		return true
-// 	case hi == '5' && (lo == 'B' || lo == 'b' || lo == 'D' || lo == 'd'):
-// 		return true
-// 	case hi == '3' && (lo == 'A' || lo == 'a' || lo == 'B' || lo == 'b' || lo == 'D' || lo == 'd' || lo == 'F' || lo == 'f'):
-// 		return true
-// 	case hi == '2' && (lo == '1' || lo == '3' || lo == '4' || lo == '6' || lo == '7' || lo == '8' || lo == '9'):
-// 		return true
-// 	case hi == '2' && (lo == 'A' || lo == 'a' || lo == 'B' || lo == 'b' || lo == 'C' || lo == 'c' || lo == 'F' || lo == 'f'):
-// 		return true
-// 	default:
-// 		return false
-// 	}
-// }
 
 func unhex(c byte) byte {
 	switch {
