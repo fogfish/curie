@@ -232,11 +232,11 @@ func TestURL(t *testing.T) {
 	})
 
 	t.Run("PercentEncoded", func(t *testing.T) {
-		url, err := curie.URL(prefixes, curie.IRI("wikipedia:Ῥόδος"))
+		url, err := curie.URL(prefixes, curie.IRI("wikipedia:Ῥόδος_%1F"))
 
 		it.Ok(t).
 			IfNil(err).
-			If(url.String()).Equal("http://en.wikipedia.org/wiki/%E1%BF%AC%CF%8C%CE%B4%CE%BF%CF%82")
+			If(url.String()).Equal("http://en.wikipedia.org/wiki/%E1%BF%AC%CF%8C%CE%B4%CE%BF%CF%82_%1F")
 	})
 
 	t.Run("Invalid URL", func(t *testing.T) {
