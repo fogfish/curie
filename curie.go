@@ -88,7 +88,7 @@ func (ns Namespaces) Create(uri string) IRI {
 	for key, val := range ns {
 		if strings.HasPrefix(uri, val) {
 			ref := Decode(uri[len(val):])
-			return IRI(key + ":" + ref)
+			return IRI(key + ":" + string(ref))
 		}
 	}
 

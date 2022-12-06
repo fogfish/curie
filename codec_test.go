@@ -20,7 +20,6 @@ func TestDecode(t *testing.T) {
 		"%%%":      "%%%",
 		"%Ww%wW%%": "%Ww%wW%%",
 		"%s":       "%s",
-		"\uFFFD":   "%FF%FD",
 	} {
 		it.Ok(t).If(Decode(uri)).Equal(iri)
 	}
