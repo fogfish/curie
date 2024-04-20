@@ -127,6 +127,17 @@ func TestCodecFail(t *testing.T) {
 				it.Nil(err2),
 			)
 		})
+
+		t.Run(fmt.Sprintf("Corrupted (%s)", id), func(t *testing.T) {
+			var recv Struct
+
+			err2 := json.Unmarshal([]byte("{\"id\":"+string(id)+"}"), &recv)
+
+			it.Then(t).ShouldNot(
+				it.Nil(err2),
+			)
+		})
+
 	}
 }
 
