@@ -127,18 +127,16 @@ func TestCodecFail(t *testing.T) {
 				it.Nil(err2),
 			)
 		})
-
-		t.Run(fmt.Sprintf("Corrupted (%s)", id), func(t *testing.T) {
-			var recv Struct
-
-			err2 := json.Unmarshal([]byte("{\"id\":"+string(id)+"}"), &recv)
-
-			it.Then(t).ShouldNot(
-				it.Nil(err2),
-			)
-		})
-
 	}
+
+	t.Run("Invalid type", func(t *testing.T) {
+		var recv Struct
+
+		err := json.Unmarshal([]byte("{\"id\":10}"), &recv)
+		it.Then(t).ShouldNot(
+			it.Nil(err),
+		)
+	})
 }
 
 func TestIsEmpty(t *testing.T) {
