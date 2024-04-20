@@ -175,16 +175,6 @@ func New(schema, ref string, args ...interface{}) IRI {
 	}
 
 	return IRI(curie)
-	// val := iri
-	// if len(val) > 0 && (val[0] == '[' && val[len(val)-1] == ']') {
-	// 	val = val[1 : len(val)-1]
-	// }
-
-	// if len(args) > 0 {
-	// 	val = fmt.Sprintf(iri, args...)
-	// }
-
-	// return IRI(val)
 }
 
 // Split URN into NID and NSS
