@@ -1,6 +1,6 @@
 # curie
 
-The type `curie` ("Compact URI") defines a generic syntax for expressing URIs by abbreviated literal as defined by the [W3C](https://www.w3.org/TR/2010/NOTE-curie-20101216/). This datatype supports type safe identity within domain driven design. 
+The library defines identity types `curie` ("Compact URI") as defined by the [W3C](https://www.w3.org/TR/2010/NOTE-curie-20101216/) and `urn` as defined by [RFC8141](https://www.rfc-editor.org/rfc/rfc8141). These datatype supports type safe identity within domain driven design.
 
 [![Version](https://img.shields.io/github/v/tag/fogfish/curie?label=version)](https://github.com/fogfish/curie/releases)
 [![Documentation](https://pkg.go.dev/badge/github.com/fogfish/curie)](https://pkg.go.dev/github.com/fogfish/curie)
@@ -8,7 +8,7 @@ The type `curie` ("Compact URI") defines a generic syntax for expressing URIs by
 [![Git Hub](https://img.shields.io/github/last-commit/fogfish/curie.svg)](https://github.com/fogfish/curie)
 [![Coverage Status](https://coveralls.io/repos/github/fogfish/curie/badge.svg?branch=main)](https://coveralls.io/github/fogfish/curie?branch=main)
 [![Go Report Card](https://goreportcard.com/badge/github.com/fogfish/curie)](https://goreportcard.com/report/github.com/fogfish/curie)
-[![Maintainability](https://api.codeclimate.com/v1/badges/bdad0e2fd29d488217fd/maintainability)](https://codeclimate.com/github/fogfish/curie/maintainability)
+
 
 
 ## Inspiration 
@@ -17,17 +17,18 @@ Linked-Data are used widely by Semantic Web to publish structured data so that i
 
 Another challenge solved by `curie` is a formal mechanism to permit the use of the concept of scoping, where identities are created within a unique scope, and that scope's collection is managed by the group that defines it. All-in-all CURIEs expand to any IRI.
 
+`urn` is an alternative for `curie` following same principles. 
 
 ## Getting started
 
 The latest version of the library is available at `main` branch of this repository. All development, including new features and bug fixes, take place on the `main` branch using forking and pull requests as described in contribution guidelines. The stable version is available via Golang modules.
 
 ```go
-import "github.com/fogfish/curie"
+import "github.com/fogfish/curie/v2"
 
 //
 // creates compacts URI to wiki article about CURIE data type
-compact := curie.New("wikipedia:CURIE")
+compact := curie.New("wikipedia", "CURIE")
 
 //
 // expands compact URI to absolute one
@@ -58,25 +59,20 @@ The type defines a simple algebra for manipulating instances of compact URI:
 
 ```go
 // zero: empty compact URI
-z := curie.New("")
+z := curie.Empty
 
 // transform: string ⟼ CURIE
-a := curie.New(/* ... */)
-b := curie.New(/* ... */)
-
-// rank: |CURIE| ⟼ EMPTY, PREFIX, REFERENCE
-curie.Rank(a)
+a := curie.New("wiki", "CURIE")
 
 // unary decompose: CURIE ⟼ string
-curie.Prefix(c)
-curie.Reference(c)
-
-// binary ordering: CURIE ≼ CURIE ⟼ bool 
-curie.Eq(a, b)
-curie.Lt(a, b)
+curie.Schema(a)
+curie.Reference(b)
 
 // binary compose: CURIE × String ⟼ CURIE
-curie.Join(a, b)
+curie.Join(a, "#Example")
+
+// binary compose: CURIE × Int ⟼ CURIE
+curie.Disjoin(a, 1)
 ```
 
 ### URI compatibility
@@ -112,6 +108,32 @@ type Person struct {
 ```
 
 This example uses CURIE data type. `ID` is a primary key, all other `IRI` is a "pointer" to linked-data.
+
+
+### URN
+
+URN is equivalent presentation or CURIE.
+
+```go
+import "github.com/fogfish/curie/v2/urn"
+
+// zero: empty URN
+z := urn.Empty
+
+//
+// creates URN to wiki article about CURIE data type
+a := urn.New("wikipedia", "CURIE")
+
+// unary decompose: CURIE ⟼ string
+curie.Schema(a)
+curie.Reference(a)
+
+// binary compose: CURIE × String ⟼ CURIE
+curie.Join(a, "example")
+
+// binary compose: CURIE × Int ⟼ CURIE
+curie.Disjoin(a, 1)
+```
 
 ## How To Contribute
 

@@ -11,7 +11,7 @@ package curie
 import (
 	"testing"
 
-	"github.com/fogfish/it"
+	"github.com/fogfish/it/v2"
 )
 
 func TestDecode(t *testing.T) {
@@ -29,7 +29,9 @@ func TestDecode(t *testing.T) {
 		"%Ww%wW%%": "%Ww%wW%%",
 		"%s":       "%s",
 	} {
-		it.Ok(t).If(Decode(uri)).Equal(iri)
+		it.Then(t).Should(
+			it.Equal(Decode(uri), iri),
+		)
 	}
 }
 
@@ -41,6 +43,8 @@ func TestUnHex(t *testing.T) {
 		0x00: 0x00,
 		0x4F: 0x00,
 	} {
-		it.Ok(t).If(unhex(hex)).Equal(val)
+		it.Then(t).Should(
+			it.Equal(unhex(hex), val),
+		)
 	}
 }
