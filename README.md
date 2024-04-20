@@ -8,7 +8,7 @@ The library defines identity types `curie` ("Compact URI") as defined by the [W3
 [![Git Hub](https://img.shields.io/github/last-commit/fogfish/curie.svg)](https://github.com/fogfish/curie)
 [![Coverage Status](https://coveralls.io/repos/github/fogfish/curie/badge.svg?branch=main)](https://coveralls.io/github/fogfish/curie?branch=main)
 [![Go Report Card](https://goreportcard.com/badge/github.com/fogfish/curie)](https://goreportcard.com/report/github.com/fogfish/curie)
-[![Maintainability](https://api.codeclimate.com/v1/badges/bdad0e2fd29d488217fd/maintainability)](https://codeclimate.com/github/fogfish/curie/maintainability)
+
 
 
 ## Inspiration 
