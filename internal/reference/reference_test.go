@@ -67,7 +67,7 @@ func TestSplit(t *testing.T) {
 		it.Equal("b",
 			reference.Split("b/c", '/', 1),
 		),
-		it.Equal("b",
+		it.Equal("",
 			reference.Split("b/c", '/', 2),
 		),
 		it.Equal("b/c",
