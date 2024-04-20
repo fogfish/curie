@@ -19,6 +19,7 @@ import (
 
 func TestNew(t *testing.T) {
 	for expected, bag := range map[urn.URN][]string{
+		"urn:":           {"", ""},
 		"urn:isbn":       {"isbn", ""},
 		"urn:isbn:123":   {"isbn", "123"},
 		"urn:isbn:1:2:3": {"isbn", "1:2:3"},
@@ -134,6 +135,22 @@ func TestIsEmpty(t *testing.T) {
 		t.Run(fmt.Sprintf("(%s)", urn), func(t *testing.T) {
 			it.Then(t).
 				Should(it.Equal(urn.IsEmpty(), val))
+		})
+	}
+}
+
+func TestJoin(t *testing.T) {
+	for _, id := range []urn.URN{
+		"urn:",
+		"urn:isbn",
+		"urn:isbn:123",
+		"urn:isbn:1:2:3",
+		"urn:isbn:1/2/3",
+	} {
+		t.Run(fmt.Sprintf("(%s)", id), func(t *testing.T) {
+			it.Then(t).Should(
+				it.Equal(id.Join("x").Disjoin(1), id),
+			)
 		})
 	}
 }

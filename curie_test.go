@@ -20,6 +20,7 @@ import (
 
 func TestNew(t *testing.T) {
 	for expected, bag := range map[curie.IRI][]string{
+		"":        {"", ""},
 		"a:":      {"a", ""},
 		"a:b":     {"a", "b"},
 		"a:b/c":   {"a", "b/c"},
@@ -32,9 +33,14 @@ func TestNew(t *testing.T) {
 			val := curie.New(bag[0], bag[1])
 			schema, ref := val.Split()
 
+			safeExp := "[" + string(expected) + "]"
+			if len(expected) == 0 {
+				safeExp = ""
+			}
+
 			it.Then(t).Should(
 				it.Equal(val, expected),
-				it.Equal(val.Safe(), "["+string(expected)+"]"),
+				it.Equal(val.Safe(), safeExp),
 				it.Equal(schema, bag[0]),
 				it.Equal(ref, bag[1]),
 				it.Equal(val.Schema(), schema),
@@ -283,32 +289,21 @@ func TestTypeSafe(t *testing.T) {
 	)
 }
 
-// func TestLinkedData(t *testing.T) {
-// 	type Struct struct {
-// 		ID curie.IRI  `json:"id"`
-// 		LA *curie.IRI `json:"a,omitempty"`
-// 		LB *curie.IRI `json:"b,omitempty"`
-// 	}
-
-// 	b := curie.New("a:b/c")
-// 	test := map[*Struct]string{
-// 		{ID: curie.New(""), LA: &b, LB: &b}:      "{\"id\":\"\",\"a\":\"[a:b/c]\",\"b\":\"[a:b/c]\"}",
-// 		{ID: curie.New("a:"), LA: &b, LB: &b}:    "{\"id\":\"[a:]\",\"a\":\"[a:b/c]\",\"b\":\"[a:b/c]\"}",
-// 		{ID: curie.New("b"), LA: &b, LB: &b}:     "{\"id\":\"[b]\",\"a\":\"[a:b/c]\",\"b\":\"[a:b/c]\"}",
-// 		{ID: curie.New("a:b"), LA: &b, LB: &b}:   "{\"id\":\"[a:b]\",\"a\":\"[a:b/c]\",\"b\":\"[a:b/c]\"}",
-// 		{ID: curie.New("a:b/c"), LA: &b, LB: &b}: "{\"id\":\"[a:b/c]\",\"a\":\"[a:b/c]\",\"b\":\"[a:b/c]\"}",
-// 	}
-
-// 	for eg, expect := range test {
-// 		in := Struct{}
-
-// 		bytes, err1 := json.Marshal(eg)
-// 		err2 := json.Unmarshal(bytes, &in)
-
-// 		it.Ok(t).
-// 			If(err1).Should().Equal(nil).
-// 			If(err2).Should().Equal(nil).
-// 			If(*eg).Should().Equal(in).
-// 			If(string(bytes)).Should().Equal(expect)
-// 	}
-// }
+func TestJoin(t *testing.T) {
+	for _, id := range []curie.IRI{
+		"",
+		"a:",
+		"a:b",
+		"a:b/c",
+		"a:b/c/d",
+		"b",
+		"b/c",
+		"b/c/d",
+	} {
+		t.Run(fmt.Sprintf("(%s)", id), func(t *testing.T) {
+			it.Then(t).Should(
+				it.Equal(id.Join("x").Disjoin(1), id),
+			)
+		})
+	}
+}

@@ -107,7 +107,7 @@ func Reference(urn URN) string {
 }
 
 // IsEmpty is an alias to len(urn) == 0
-func (urn URN) IsEmpty() bool { return len(urn) <= 4 }
+func (urn URN) IsEmpty() bool { return IsEmpty(urn) }
 
 // IsEmpty is an alias to len(urn) == 0
 func IsEmpty(urn URN) bool {

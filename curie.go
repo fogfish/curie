@@ -222,7 +222,7 @@ func Reference(iri IRI) string {
 }
 
 // IsEmpty is an alias to len(iri) == 0
-func (iri IRI) IsEmpty() bool { return len(iri) == 0 }
+func (iri IRI) IsEmpty() bool { return IsEmpty(iri) }
 
 // IsEmpty is an alias to len(iri) == 0
 func IsEmpty(iri IRI) bool {

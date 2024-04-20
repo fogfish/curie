@@ -52,11 +52,8 @@ func Split(ref string, delim rune, n int) string {
 		func(r rune) bool {
 			if r == delim && n > 0 {
 				n--
-				return false
-			}
 
-			if r == delim {
-				return true
+				return n == 0
 			}
 
 			return false
