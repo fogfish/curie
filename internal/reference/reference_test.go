@@ -50,7 +50,7 @@ func TestJoin(t *testing.T) {
 	}
 }
 
-func TextSplit(t *testing.T) {
+func TestSplit(t *testing.T) {
 	it.Then(t).Should(
 		it.Equal("",
 			reference.Split("", '/', 1),
