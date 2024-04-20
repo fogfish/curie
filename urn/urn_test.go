@@ -121,6 +121,15 @@ func TestCodecFail(t *testing.T) {
 			)
 		})
 	}
+
+	t.Run("Invalid type", func(t *testing.T) {
+		var recv Struct
+
+		err := json.Unmarshal([]byte("{\"id\":10}"), &recv)
+		it.Then(t).ShouldNot(
+			it.Nil(err),
+		)
+	})
 }
 
 func TestIsEmpty(t *testing.T) {
