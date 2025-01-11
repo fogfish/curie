@@ -15,6 +15,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"path/filepath"
 	"strings"
 
 	"github.com/fogfish/curie/v2/internal/reference"
@@ -65,7 +66,7 @@ func (iri *IRI) UnmarshalJSON(b []byte) error {
 	}
 
 	if len(val) == 0 {
-		*iri = IRI("")
+		*iri = Empty
 		return nil
 	}
 
@@ -84,6 +85,15 @@ func (iri *IRI) UnmarshalJSON(b []byte) error {
 // Prefixes
 //
 //------------------------------------------------------------------------------
+
+// CURIE schema helper type
+//
+//	const Wiki = Namespace("wiki")
+//	Wiki.IRI("CURIE") ~ curie.New(Wiki, "CURIE")
+type Namespace string
+
+// Create new CURIE from schema and reference
+func (schema Namespace) IRI(ref string) IRI { return New(string(schema), ref) }
 
 // Prefixes is a collection of prefixes defined by the application
 type Prefixes interface {
@@ -164,28 +174,37 @@ func URL(prefixes Prefixes, iri IRI) (*url.URL, error) {
 
 // New transform category of strings to IRI.
 // It expects UTF-8 string according to RFC 3987.
-func New(schema, ref string, args ...interface{}) IRI {
-	curie := schema
-	if len(curie) > 0 && !strings.HasSuffix(curie, ":") {
-		curie += ":"
+func New(schema, ref string) IRI {
+	if len(schema) == 0 {
+		return IRI(ref)
 	}
 
-	if len(ref) > 0 {
-		curie += fmt.Sprintf(ref, args...)
-	}
-
-	return IRI(curie)
+	schema = strings.TrimSuffix(schema, ":")
+	return IRI(fmt.Sprintf("%s:%s", schema, ref))
 }
 
-// Split URN into NID and NSS
+// Return CURIE prefix (schema)
+func (iri IRI) Schema() string { return Schema(iri) }
+
+// Return CURIE prefix (schema)
+func Schema(iri IRI) string {
+	schema, _ := Split(iri)
+	return schema
+}
+
+// Return CURIE Reference
+func (iri IRI) Reference() string { return Reference(iri) }
+
+// Return CURIE Reference
+func Reference(iri IRI) string {
+	_, ref := Split(iri)
+	return ref
+}
+
+// Split CURIE into Schema and Reference
 func (iri IRI) Split() (string, string) { return Split(iri) }
 
-// Split CURIE
-//
-//	a: ⟼ [ a ]
-//	b ⟼ [ , b ]
-//	a:b ⟼ [a, b]
-//	a:b/c/d ⟼ [a, b/c/d ]
+// Split CURIE into Schema and Reference
 func Split(iri IRI) (string, string) {
 	if len(iri) == 0 {
 		return "", ""
@@ -203,36 +222,69 @@ func Split(iri IRI) (string, string) {
 	return string(iri)[:n], string(iri)[n+1:]
 }
 
-// Return CURIE Schema (prefix)
-func (iri IRI) Schema() string { return Schema(iri) }
+// Base returns the last element of CURIE reference
+func Base(iri IRI) string {
+	ref := Reference(iri)
 
-// Return CURIE Schema (prefix)
-func Schema(iri IRI) string {
-	schema, _ := Split(iri)
-	return schema
+	if len(ref) == 0 {
+		return ""
+	}
+
+	return filepath.Base(ref)
 }
 
-// Return CURIE Reference
-func (iri IRI) Reference() string { return Reference(iri) }
+// Path returns all but the last element of CURIE reference
+func Path(iri IRI) IRI {
+	schema, ref := Split(iri)
+	if len(ref) == 0 {
+		return iri
+	}
 
-// Return URN Reference
-func Reference(iri IRI) string {
-	_, ref := Split(iri)
-	return ref
+	ref = filepath.Dir(ref)
+	if ref == "." {
+		ref = ""
+	}
+
+	return New(schema, ref)
 }
 
-// IsEmpty is an alias to len(iri) == 0
-func (iri IRI) IsEmpty() bool { return IsEmpty(iri) }
+// Head returns the head element of CURIE reference
+func Head(iri IRI) string {
+	ref := Reference(iri)
 
-// IsEmpty is an alias to len(iri) == 0
-func IsEmpty(iri IRI) bool {
-	return len(iri) == 0
+	if len(ref) == 0 {
+		return ""
+	}
+
+	n := strings.IndexRune(string(ref), '/')
+	if n == -1 {
+		return ref
+	}
+
+	return ref[:n]
+}
+
+// Path returns all but the fiirst element of CURIE reference
+func Tail(iri IRI) IRI {
+	schema, ref := Split(iri)
+	if len(ref) == 0 {
+		return iri
+	}
+
+	n := strings.IndexRune(string(ref), '/')
+	if n == -1 {
+		ref = ""
+	} else {
+		ref = ref[n+1:]
+	}
+
+	return New(schema, ref)
 }
 
 // Join composes segments into new descendant CURIE.
 func (iri IRI) Join(segments ...string) IRI { return Join(iri, segments...) }
 
-// Join composes segments into new descendant URN.
+// Join composes segments into new descendant CURIE.
 //
 // a:b × [c, d, e] ⟼ a:b/c/d/e
 func Join(iri IRI, segments ...string) IRI {
@@ -240,11 +292,11 @@ func Join(iri IRI, segments ...string) IRI {
 	return New(schema, reference.Join(ref, '/', segments...))
 }
 
-// Disjoin decomposes CURIE.
-func (iri IRI) Disjoin(n int) IRI { return Disjoin(iri, n) }
+// Cut N components from CURIE Reference
+func (iri IRI) Cut(n int) IRI { return Cut(iri, n) }
 
-// Disjoin decomposes CURIE.
-func Disjoin(iri IRI, n int) IRI {
+// Cut N components from CURIE Reference
+func Cut(iri IRI, n int) IRI {
 	schema, ref := Split(iri)
 	return New(schema, reference.Split(ref, '/', n))
 }

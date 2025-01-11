@@ -50,27 +50,47 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestNewFormat(t *testing.T) {
-	for expected, bag := range map[curie.IRI][]string{
-		"a:":      {"a", ""},
-		"a:b":     {"a", "b"},
-		"a:b/c":   {"a", "b/c"},
-		"a:b/c/d": {"a", "b/c/d"},
-		"b":       {"", "b"},
-		"b/c":     {"", "b/c"},
-		"b/c/d":   {"", "b/c/d"},
+func TestBasePath(t *testing.T) {
+	for input, expected := range map[curie.IRI][]string{
+		"":        {"", ""},
+		"a:":      {"", "a:"},
+		"a:b":     {"b", "a:"},
+		"a:b/c":   {"c", "a:b"},
+		"a:b/c/d": {"d", "a:b/c"},
+		"b":       {"b", ""},
+		"b/c":     {"c", "b"},
+		"b/c/d":   {"d", "b/c"},
 	} {
 		t.Run(fmt.Sprintf("(%s)", expected), func(t *testing.T) {
-			val := curie.New(bag[0], "%s", bag[1])
-			schema, ref := val.Split()
+			base := curie.Base(input)
+			path := curie.Path(input)
 
 			it.Then(t).Should(
-				it.Equal(val, expected),
-				it.Equal(val.Safe(), "["+string(expected)+"]"),
-				it.Equal(schema, bag[0]),
-				it.Equal(ref, bag[1]),
-				it.Equal(val.Schema(), schema),
-				it.Equal(val.Reference(), ref),
+				it.Equal(base, expected[0]),
+				it.Equal(string(path), expected[1]),
+			)
+		})
+	}
+}
+
+func TestHeadTail(t *testing.T) {
+	for input, expected := range map[curie.IRI][]string{
+		"":        {"", ""},
+		"a:":      {"", "a:"},
+		"a:b":     {"b", "a:"},
+		"a:b/c":   {"b", "a:c"},
+		"a:b/c/d": {"b", "a:c/d"},
+		"b":       {"b", ""},
+		"b/c":     {"b", "c"},
+		"b/c/d":   {"b", "c/d"},
+	} {
+		t.Run(fmt.Sprintf("(%s)", expected), func(t *testing.T) {
+			head := curie.Head(input)
+			tail := curie.Tail(input)
+
+			it.Then(t).Should(
+				it.Equal(head, expected[0]),
+				it.Equal(string(tail), expected[1]),
 			)
 		})
 	}
@@ -137,21 +157,6 @@ func TestCodecFail(t *testing.T) {
 			it.Nil(err),
 		)
 	})
-}
-
-func TestIsEmpty(t *testing.T) {
-	for iri, val := range map[curie.IRI]bool{
-		"":    true,
-		"a:":  false,
-		"a:b": false,
-		"b":   false,
-		"b/c": false,
-	} {
-		t.Run(fmt.Sprintf("(%s)", iri), func(t *testing.T) {
-			it.Then(t).
-				Should(it.Equal(iri.IsEmpty(), val))
-		})
-	}
 }
 
 func TestURL(t *testing.T) {
@@ -311,7 +316,7 @@ func TestJoin(t *testing.T) {
 	} {
 		t.Run(fmt.Sprintf("(%s)", id), func(t *testing.T) {
 			it.Then(t).Should(
-				it.Equal(id.Join("x").Disjoin(1), id),
+				it.Equal(id.Join("x").Cut(1), id),
 			)
 		})
 	}

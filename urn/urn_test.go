@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/fogfish/curie/v2"
 	"github.com/fogfish/curie/v2/urn"
 	"github.com/fogfish/it/v2"
 )
@@ -40,23 +41,43 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestNewFormat(t *testing.T) {
-	for expected, bag := range map[urn.URN][]string{
-		"urn:isbn":       {"isbn", ""},
-		"urn:isbn:123":   {"isbn", "123"},
-		"urn:isbn:1:2:3": {"isbn", "1:2:3"},
-		"urn:isbn:1/2/3": {"isbn", "1/2/3"},
+func TestBasePath(t *testing.T) {
+	for input, expected := range map[urn.URN][]string{
+		"":               {"", ""},
+		"urn:":           {"", "urn:"},
+		"urn:isbn":       {"", "urn:isbn"},
+		"urn:isbn:b":     {"b", "urn:isbn"},
+		"urn:isbn:b:c":   {"c", "urn:isbn:b"},
+		"urn:isbn:b:c:d": {"d", "urn:isbn:b:c"},
 	} {
 		t.Run(fmt.Sprintf("(%s)", expected), func(t *testing.T) {
-			val := urn.New(bag[0], "%s", bag[1])
-			schema, ref := val.Split()
+			base := urn.Base(input)
+			path := urn.Path(input)
 
 			it.Then(t).Should(
-				it.Equal(val, expected),
-				it.Equal(schema, bag[0]),
-				it.Equal(ref, bag[1]),
-				it.Equal(val.Schema(), schema),
-				it.Equal(val.Reference(), ref),
+				it.Equal(base, expected[0]),
+				it.Equal(string(path), expected[1]),
+			)
+		})
+	}
+}
+
+func TestHeadTail(t *testing.T) {
+	for input, expected := range map[urn.URN][]string{
+		"":               {"", ""},
+		"urn:":           {"", "urn:"},
+		"urn:isbn":       {"", "urn:isbn"},
+		"urn:isbn:b":     {"b", "urn:isbn"},
+		"urn:isbn:b:c":   {"b", "urn:isbn:c"},
+		"urn:isbn:b:c:d": {"b", "urn:isbn:c:d"},
+	} {
+		t.Run(fmt.Sprintf("(%s)", expected), func(t *testing.T) {
+			head := urn.Head(input)
+			tail := urn.Tail(input)
+
+			it.Then(t).Should(
+				it.Equal(head, expected[0]),
+				it.Equal(string(tail), expected[1]),
 			)
 		})
 	}
@@ -132,22 +153,6 @@ func TestCodecFail(t *testing.T) {
 	})
 }
 
-func TestIsEmpty(t *testing.T) {
-	for urn, val := range map[urn.URN]bool{
-		"":               true,
-		"urn:":           true,
-		"urn:isbn":       false,
-		"urn:isbn:123":   false,
-		"urn:isbn:1:2:3": false,
-		"urn:isbn:1/2/3": false,
-	} {
-		t.Run(fmt.Sprintf("(%s)", urn), func(t *testing.T) {
-			it.Then(t).
-				Should(it.Equal(urn.IsEmpty(), val))
-		})
-	}
-}
-
 func TestJoin(t *testing.T) {
 	for _, id := range []urn.URN{
 		"urn:",
@@ -158,7 +163,23 @@ func TestJoin(t *testing.T) {
 	} {
 		t.Run(fmt.Sprintf("(%s)", id), func(t *testing.T) {
 			it.Then(t).Should(
-				it.Equal(id.Join("x").Disjoin(1), id),
+				it.Equal(id.Join("x").Cut(1), id),
+			)
+		})
+	}
+}
+
+func TestUrn2Iri(t *testing.T) {
+	for URN, IRI := range map[urn.URN]curie.IRI{
+		"urn:":           "",
+		"urn:isbn":       "isbn:",
+		"urn:isbn:123":   "isbn:123",
+		"urn:isbn:1:2:3": "isbn:1/2/3",
+	} {
+		t.Run(fmt.Sprintf("(%s)", URN), func(t *testing.T) {
+			it.Then(t).Should(
+				it.Equal(urn.ToIRI(URN), IRI),
+				it.Equal(urn.ToURN(IRI), URN),
 			)
 		})
 	}

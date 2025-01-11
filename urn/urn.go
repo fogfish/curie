@@ -13,8 +13,10 @@ package urn
 import (
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"strings"
 
+	"github.com/fogfish/curie/v2"
 	"github.com/fogfish/curie/v2/internal/reference"
 )
 
@@ -32,12 +34,11 @@ type URN string
 const Empty = URN("")
 
 // Create new URN
-func New(schema, ref string, args ...any) URN {
+func New(schema, ref string) URN {
 	urn := "urn:" + schema
 	if len(ref) > 0 {
-		sfx := fmt.Sprintf(ref, args...)
-		if len(sfx) > 0 {
-			urn += ":" + sfx
+		if len(ref) > 0 {
+			urn += ":" + ref
 		}
 	}
 
@@ -69,6 +70,24 @@ func (urn *URN) UnmarshalJSON(b []byte) error {
 	return fmt.Errorf("invalid URN %s", val)
 }
 
+// Return URN Schema
+func (urn URN) Schema() string { return Schema(urn) }
+
+// Return URN Schema
+func Schema(urn URN) string {
+	schema, _ := Split(urn)
+	return schema
+}
+
+// Return URN Reference
+func (urn URN) Reference() string { return Reference(urn) }
+
+// Return URN Reference
+func Reference(urn URN) string {
+	_, ref := Split(urn)
+	return ref
+}
+
 // Split URN into NID and NSS
 func (urn URN) Split() (string, string) { return Split(urn) }
 
@@ -88,30 +107,70 @@ func Split(urn URN) (string, string) {
 	return string(s[:n]), string(s[n+1:])
 }
 
-// Return URN Schema
-func (urn URN) Schema() string { return Schema(urn) }
+// Base returns the last element of CURIE reference
+func Base(iri URN) string {
+	ref := Reference(iri)
 
-// Return URN Schema
-func Schema(urn URN) string {
-	schema, _ := Split(urn)
-	return schema
+	if len(ref) == 0 {
+		return ""
+	}
+
+	n := strings.LastIndexByte(ref, ':')
+	if n == -1 {
+		return ref
+	}
+
+	return ref[n+1:]
 }
 
-// Return URN Reference
-func (urn URN) Reference() string { return Reference(urn) }
+// Path returns all but the last element of CURIE reference
+func Path(iri URN) URN {
+	schema, ref := Split(iri)
+	if len(ref) == 0 {
+		return iri
+	}
 
-// Return URN Reference
-func Reference(urn URN) string {
-	_, ref := Split(urn)
-	return ref
+	n := strings.LastIndexByte(ref, ':')
+	if n == -1 {
+		ref = ""
+	} else {
+		ref = ref[:n]
+	}
+
+	return New(schema, ref)
 }
 
-// IsEmpty is an alias to len(urn) == 0
-func (urn URN) IsEmpty() bool { return IsEmpty(urn) }
+// Head returns the head element of CURIE reference
+func Head(iri URN) string {
+	ref := Reference(iri)
 
-// IsEmpty is an alias to len(urn) == 0
-func IsEmpty(urn URN) bool {
-	return len(urn) <= 4
+	if len(ref) == 0 {
+		return ""
+	}
+
+	n := strings.IndexRune(string(ref), ':')
+	if n == -1 {
+		return ref
+	}
+
+	return ref[:n]
+}
+
+// Path returns all but the fiirst element of CURIE reference
+func Tail(iri URN) URN {
+	schema, ref := Split(iri)
+	if len(ref) == 0 {
+		return iri
+	}
+
+	n := strings.IndexRune(string(ref), ':')
+	if n == -1 {
+		ref = ""
+	} else {
+		ref = ref[n+1:]
+	}
+
+	return New(schema, ref)
 }
 
 // Join composes segments into new descendant URN.
@@ -125,11 +184,24 @@ func Join(urn URN, segments ...string) URN {
 	return New(schema, reference.Join(ref, ':', segments...))
 }
 
-// Disjoin decomposes URN
-func (urn URN) Disjoin(n int) URN { return Disjoin(urn, n) }
+// Cut N components from URN NSS
+func (urn URN) Cut(n int) URN { return Cut(urn, n) }
 
-// Disjoin decomposes URN
-func Disjoin(urn URN, n int) URN {
+// Cut N components from URN NSS
+func Cut(urn URN, n int) URN {
 	schema, ref := Split(urn)
 	return New(schema, reference.Split(ref, ':', n))
+}
+
+// Conver URN to IRI
+func ToIRI(urn URN) curie.IRI {
+	schema, ref := Split(urn)
+	ref = filepath.Join(strings.Split(ref, ":")...)
+	return curie.New(schema, ref)
+}
+
+func ToURN(iri curie.IRI) URN {
+	schema, ref := curie.Split(iri)
+	ref = strings.Join(strings.Split(ref, "/"), ":")
+	return New(schema, ref)
 }
