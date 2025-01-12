@@ -129,15 +129,9 @@ func TestCodec(t *testing.T) {
 				it.Nil(err1),
 				it.Nil(err2),
 				it.Equiv(send, recv),
-				it.Equiv(bytes, []byte("{\"id\":\""+id.Safe()+"\"}")),
+				it.Equiv(bytes, []byte("{\"id\":\""+id+"\"}")),
 			)
 		})
-	}
-}
-
-func TestCodecFail(t *testing.T) {
-	type Struct struct {
-		ID curie.IRI `json:"id"`
 	}
 
 	for _, id := range []curie.IRI{
@@ -148,12 +142,19 @@ func TestCodecFail(t *testing.T) {
 		t.Run(fmt.Sprintf("Decode (%s)", id), func(t *testing.T) {
 			var recv Struct
 
-			err2 := json.Unmarshal([]byte("{\"id\":\""+string(id)+"\"}"), &recv)
+			err2 := json.Unmarshal([]byte("{\"id\":\"["+string(id)+"]\"}"), &recv)
 
-			it.Then(t).ShouldNot(
+			it.Then(t).Should(
 				it.Nil(err2),
+				it.Equal(recv.ID, id),
 			)
 		})
+	}
+}
+
+func TestCodecFail(t *testing.T) {
+	type Struct struct {
+		ID curie.IRI `json:"id"`
 	}
 
 	t.Run("Invalid type", func(t *testing.T) {

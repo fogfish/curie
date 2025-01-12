@@ -54,7 +54,7 @@ func (iri IRI) MarshalJSON() ([]byte, error) {
 		return json.Marshal("")
 	}
 
-	return json.Marshal(iri.Safe())
+	return json.Marshal(string(iri))
 }
 
 // UnmarshalJSON `"[prefix:suffix]" ⟼ IRI`
@@ -70,11 +70,10 @@ func (iri *IRI) UnmarshalJSON(b []byte) error {
 		return nil
 	}
 
-	if val[0] != '[' && val[len(val)-1] != ']' {
-		return fmt.Errorf("invalid CURIE %s", val)
+	if val[0] == '[' && val[len(val)-1] == ']' {
+		*iri = IRI(val[1 : len(val)-1])
+		return nil
 	}
-
-	val = val[1 : len(val)-1]
 
 	*iri = IRI(val)
 	return nil
