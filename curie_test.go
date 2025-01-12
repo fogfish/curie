@@ -50,6 +50,13 @@ func TestNew(t *testing.T) {
 	}
 }
 
+func TestNamespaceIRI(t *testing.T) {
+	a := curie.Namespace("a")
+	it.Then(t).Should(
+		it.Equal(a.IRI("b/c"), "a:b/c"),
+	)
+}
+
 func TestBasePath(t *testing.T) {
 	for input, expected := range map[curie.IRI][]string{
 		"":        {"", ""},
