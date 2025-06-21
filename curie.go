@@ -263,7 +263,7 @@ func Head(iri IRI) string {
 	return ref[:n]
 }
 
-// Path returns all but the fiirst element of CURIE reference
+// Path returns all but the first element of CURIE reference
 func Tail(iri IRI) IRI {
 	schema, ref := Split(iri)
 	if len(ref) == 0 {
@@ -298,4 +298,36 @@ func (iri IRI) Cut(n int) IRI { return Cut(iri, n) }
 func Cut(iri IRI, n int) IRI {
 	schema, ref := Split(iri)
 	return New(schema, reference.Split(ref, '/', n))
+}
+
+// Identity is an interface that defines a type that can be converted to an IRI.
+type Identity interface{ ToIRI() IRI }
+
+// EncodeJSON encodes an Identity to JSON format.
+func EncodeJSON(iri Identity) ([]byte, error) {
+	if iri == nil {
+		return json.Marshal(nil)
+	}
+
+	return json.Marshal(iri.ToIRI())
+}
+
+// Resolver is an interface that defines a type that can resolve an IRI to a specific value.
+type Resolver interface{ FromIRI(IRI) error }
+
+func DecodeJSON(b []byte, resolver Resolver) error {
+	if resolver == nil {
+		return fmt.Errorf("resolver is nil")
+	}
+
+	var iri IRI
+	if err := json.Unmarshal(b, &iri); err != nil {
+		return err
+	}
+
+	if len(iri) == 0 {
+		return nil
+	}
+
+	return resolver.FromIRI(iri)
 }

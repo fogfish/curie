@@ -12,6 +12,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/fogfish/curie/v2"
@@ -328,4 +330,68 @@ func TestJoin(t *testing.T) {
 			)
 		})
 	}
+}
+
+type ID struct {
+	Author  curie.IRI
+	Article curie.IRI
+}
+
+func (id ID) ToIRI() curie.IRI {
+	return curie.New("x", filepath.Join(id.Author.Reference(), id.Article.Reference()))
+}
+
+func (id *ID) FromIRI(iri curie.IRI) error {
+	if iri.Schema() != "x" {
+		return fmt.Errorf("expected schema 'x', got '%s'", iri.Schema())
+	}
+
+	ref := curie.Reference(iri)
+	parts := strings.Split(ref, "/")
+
+	id.Author = curie.New("a", parts[0])
+	id.Article = curie.New("p", strings.Join(parts[1:], "/"))
+	return nil
+}
+
+func (id ID) MarshalJSON() ([]byte, error)     { return curie.EncodeJSON(id) }
+func (id *ID) UnmarshalJSON(data []byte) error { return curie.DecodeJSON(data, id) }
+
+func TestEncodeJSON(t *testing.T) {
+	for expected, input := range map[string]*ID{
+		"null":                   nil,
+		"\"x:author/article/1\"": {Author: "a:author", Article: "p:article/1"},
+	} {
+		b, err := json.Marshal(input)
+		it.Then(t).Should(
+			it.Nil(err),
+			it.Equal(string(b), expected),
+		)
+	}
+}
+
+func TestDecodeJSON(t *testing.T) {
+	for input, expected := range map[string]ID{
+		"null":                   {},
+		"\"x:author/article/1\"": {Author: "a:author", Article: "p:article/1"},
+	} {
+		var id ID
+		err := json.Unmarshal([]byte(input), &id)
+
+		it.Then(t).Should(
+			it.Nil(err),
+			it.Equal(id, expected),
+			it.Equal(id.Author, expected.Author),
+			it.Equal(id.Article, expected.Article),
+		)
+	}
+}
+
+func TestDecodeError(t *testing.T) {
+	var id ID
+	err := json.Unmarshal([]byte("100"), &id)
+
+	it.Then(t).ShouldNot(
+		it.Nil(err),
+	)
 }
