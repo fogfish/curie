@@ -357,24 +357,41 @@ func (id *ID) FromIRI(iri curie.IRI) error {
 func (id ID) MarshalJSON() ([]byte, error)     { return curie.EncodeJSON(id) }
 func (id *ID) UnmarshalJSON(data []byte) error { return curie.DecodeJSON(data, id) }
 
-func TestComposedIRI(t *testing.T) {
-	input := ID{
-		Author:  curie.New("a", "author"),
-		Article: curie.New("p", "article/1"),
+func TestEncodeJSON(t *testing.T) {
+	for expected, input := range map[string]*ID{
+		"null":                   nil,
+		"\"x:author/article/1\"": {Author: "a:author", Article: "p:article/1"},
+	} {
+		b, err := json.Marshal(input)
+		it.Then(t).Should(
+			it.Nil(err),
+			it.Equal(string(b), expected),
+		)
 	}
+}
 
-	iri, err := json.Marshal(input)
-	it.Then(t).Should(
-		it.Nil(err),
-		it.Equal(string(iri), "\"x:author/article/1\""),
-	)
+func TestDecodeJSON(t *testing.T) {
+	for input, expected := range map[string]ID{
+		"null":                   {},
+		"\"x:author/article/1\"": {Author: "a:author", Article: "p:article/1"},
+	} {
+		var id ID
+		err := json.Unmarshal([]byte(input), &id)
 
+		it.Then(t).Should(
+			it.Nil(err),
+			it.Equal(id, expected),
+			it.Equal(id.Author, expected.Author),
+			it.Equal(id.Article, expected.Article),
+		)
+	}
+}
+
+func TestDecodeError(t *testing.T) {
 	var id ID
-	err = json.Unmarshal(iri, &id)
+	err := json.Unmarshal([]byte("100"), &id)
 
-	it.Then(t).Should(
+	it.Then(t).ShouldNot(
 		it.Nil(err),
-		it.Equal(id.Author, input.Author),
-		it.Equal(id.Article, input.Article),
 	)
 }
