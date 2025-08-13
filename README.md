@@ -50,24 +50,25 @@ go get github.com/fogfish/curie/v2
 package main
 
 import (
-  "fmt"
-  "github.com/fogfish/curie/v2"
+	"fmt"
+
+	"github.com/fogfish/curie/v2"
 )
 
 func main() {
-  //
-  // creates compacts URI to wiki article about CURIE data type
-  iri := curie.New("wiki", "CURIE")  
-  fmt.Println(iri.Safe())
+	//
+	// creates compacts URI to wiki article about CURIE data type
+	iri := curie.New("wiki", "CURIE")
+	fmt.Println(iri.Safe())
 
-  //
-  // expands compact URI to absolute one
-  //   ⟿ http://en.wikipedia.org/wiki/CURIE
-  prefixes := curie.Prefixes{
-    "wiki": "http://en.wikipedia.org/wiki/",
-  }
-  url := curie.URI(prefixes, iri)
-  fmt.Println(url.Safe())
+	//
+	// expands compact URI to absolute one
+	//   ⟿ http://en.wikipedia.org/wiki/CURIE
+	prefixes := curie.Namespaces{
+		"wiki": "http://en.wikipedia.org/wiki/",
+	}
+	url := curie.URI(prefixes, iri)
+	fmt.Println(url)
 }
 ```
 
@@ -150,17 +151,19 @@ See [go doc](https://pkg.go.dev/github.com/fogfish/curie/v2).
 The datatype is compatible with traditional URIs
 
 ```go
-// any absolute URIs are parsable to CURIE
-compact := curie.New("https://example.com/a/b/c")
+// absolute URIs are parseable to curie if supplied with namespaces
+prefixes := curie.Namespaces{
+"ex": "https://example.com/",
+}
 
-// cast to string, it is an equivalent to input
-//   ⟿ https://example.com/a/b/c
-string(compact)
+compact := curie.FromURI(prefixes,"https://example.com/a/b/c")
 
-//
+fmt.Println(compact)
+
 // expands compact URI to absolute one
 //   ⟿ https://example.com/a/b/c
-url, err := curie.URI("https://example.com/a/b/c")
+uri := curie.URI(prefixes,"ex:a/b/c")
+fmt.Println(uri)
 ```
 
 ### Linked-data
